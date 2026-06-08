@@ -1,13 +1,16 @@
 import { LayoutDashboard, Briefcase, Route, DollarSign } from 'lucide-react'
 import { PageHeader, StatCard } from '../../components/ui'
+import InsightCallout from '../../components/story/InsightCallout'
 import { transporterDashboard, formatRWF } from '../../data/mockData'
 import { useApp } from '../../context/AppContext'
+import { useDemoPersona } from '../../context/DemoPersonaContext'
 
 export default function TransporterDashboard() {
   const { jobs, trips } = useApp()
+  const { persona } = useDemoPersona()
+  const transporterId = persona.role === 'transporter' ? persona.id : 't1'
 
-  // Filter transporter f1 jobs/trips (Kamanzi Transport, ID: t1)
-  const myTrips = trips.filter(t => t.transporterId === 't1')
+  const myTrips = trips.filter(t => t.transporterId === transporterId)
   
   const availableJobsCount = jobs.filter(j => !j.transporterId).length
   const activeTripsCount = myTrips.filter(t => t.status === 'Active' || t.status === 'In Transit').length
@@ -20,8 +23,12 @@ export default function TransporterDashboard() {
     <div>
       <PageHeader
         title={transporterDashboard.name}
-        description="Fleet management and job overview"
+        description="Fill your truck, cut empty return trips, earn from coordinated loads."
       />
+      <InsightCallout>
+        Empty return trips waste fuel and income. GreenRoute sends you coordinated loads on routes you already serve —
+        fewer wasted kilometers, better utilization.
+      </InsightCallout>
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label="Available Jobs" value={availableJobsCount} icon={Briefcase} />
         <StatCard label="Active Trips" value={activeTripsCount} icon={Route} />

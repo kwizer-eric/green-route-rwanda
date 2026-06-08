@@ -2,15 +2,20 @@ import { PageHeader } from '../../components/ui'
 import StatusBadge from '../../components/StatusBadge'
 import { formatRWF } from '../../data/mockData'
 import { useApp } from '../../context/AppContext'
+import { useDemoPersona } from '../../context/DemoPersonaContext'
 
 export default function MyListings() {
   const { listings } = useApp()
-  const myListings = listings.filter(l => l.farmerName === 'Uwimana Jean' || l.farmerId === 'f1')
-
+  const { persona } = useDemoPersona()
+  const farmerId = persona.role === 'farmer' ? persona.id : 'f1'
+  const myListings = listings.filter(l => l.farmerId === farmerId)
 
   return (
     <div>
-      <PageHeader title="My Listings" description="Track the status of your listed produce." />
+      <PageHeader
+        title="My Listings"
+        description="Track produce from listing to matched transport — each status reflects logistics progress."
+      />
       <div className="bg-white rounded-2xl border border-stone-100 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">

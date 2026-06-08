@@ -23,7 +23,11 @@ export default function ImpactMetrics() {
 
   return (
     <div>
-      <PageHeader title="Impact Metrics" description="Measuring GreenRoute's contribution to Rwanda's agricultural sector." />
+      <PageHeader
+        title="Impact Metrics"
+        description="Measuring how coordinated logistics reduces waste, emissions, and empty trips."
+      />
+      <p className="text-xs text-stone-400 mb-4 -mt-6">Demo metrics — illustrative values that update as you complete deliveries in the walkthrough.</p>
       <div className="grid sm:grid-cols-2 gap-4">
         {dynamicImpactMetrics.map(m => {
 
@@ -46,9 +50,10 @@ export default function ImpactMetrics() {
       </div>
       <Card className="mt-6 p-8 text-center">
         <p className="text-stone-500 text-sm max-w-lg mx-auto leading-relaxed">
-          Since launch, GreenRoute has facilitated over 12,000 successful deliveries across all 30 districts of Rwanda,
-          directly contributing to reduced post-harvest losses and increased farmer incomes.
+          Coordinated logistics across pilot districts reduces post-harvest losses, empty return trips,
+          and carbon emissions — strengthening rural-urban market connections across Rwanda.
         </p>
+        <p className="text-xs text-stone-400 mt-3">Projected impact narrative for concept demo.</p>
       </Card>
     </div>
   )

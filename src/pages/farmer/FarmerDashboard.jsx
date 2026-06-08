@@ -1,13 +1,16 @@
 import { LayoutDashboard, Package, List, Truck } from 'lucide-react'
 import { PageHeader, StatCard } from '../../components/ui'
+import InsightCallout from '../../components/story/InsightCallout'
 import { farmerDashboard, formatRWF } from '../../data/mockData'
 import { useApp } from '../../context/AppContext'
+import { useDemoPersona } from '../../context/DemoPersonaContext'
 
 export default function FarmerDashboard() {
   const { listings } = useApp()
+  const { persona } = useDemoPersona()
+  const farmerId = persona.role === 'farmer' ? persona.id : 'f1'
 
-  // Filter listings belonging to Farmer f1 (Uwimana Jean)
-  const myListings = listings.filter(l => l.farmerId === 'f1')
+  const myListings = listings.filter(l => l.farmerId === farmerId)
 
   const activeCount = myListings.filter(l => l.status === 'Pending' || l.status === 'Matched' || l.status === 'In Transit').length
   const pendingCount = myListings.filter(l => l.status === 'Matched' || l.status === 'In Transit').length
@@ -24,8 +27,12 @@ export default function FarmerDashboard() {
     <div>
       <PageHeader
         title={`Welcome, ${farmerDashboard.name}`}
-        description={`${farmerDashboard.cooperative} · Nyagatare District`}
+        description="Turn harvest into market access without waiting for informal brokers."
       />
+      <InsightCallout>
+        Up to 37% of Sub-Saharan produce is lost in transit. GreenRoute matches your harvest with transport
+        capacity so goods reach market before they spoil.
+      </InsightCallout>
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label="Active Listings" value={activeCount} icon={Package} />
         <StatCard label="Pending Pickups" value={pendingCount} icon={Truck} />
@@ -35,7 +42,7 @@ export default function FarmerDashboard() {
       <div className="mt-8 bg-white rounded-2xl border border-stone-100 p-6">
         <h2 className="text-sm font-semibold text-stone-900 mb-4">Recent Activity</h2>
         <div className="space-y-3">
-          {listings.filter(l => l.farmerId === 'f1').slice(0, 3).map((l, idx) => {
+          {listings.filter(l => l.farmerId === farmerId).slice(0, 3).map((l, idx) => {
             let activityText = `Produce listing for ${l.crop} (${l.quantity} kg) is ${l.status.toLowerCase()}`
             if (l.status === 'Matched') {
               activityText = `${l.crop} listing matched with a transporter`
@@ -51,7 +58,7 @@ export default function FarmerDashboard() {
               </div>
             )
           })}
-          {listings.filter(l => l.farmerId === 'f1').length === 0 && (
+          {listings.filter(l => l.farmerId === farmerId).length === 0 && (
             <p className="text-sm text-stone-400">No recent activity found.</p>
           )}
         </div>

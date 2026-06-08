@@ -4,22 +4,27 @@ import { PageHeader, Button, Card } from '../../components/ui'
 import AIRecommendedBadge from '../../components/AIRecommendedBadge'
 import { formatRWF } from '../../data/mockData'
 import { useApp } from '../../context/AppContext'
+import { useDemoPersona } from '../../context/DemoPersonaContext'
 
 export default function AvailableJobs() {
   const { jobs, acceptJob } = useApp()
+  const { persona } = useDemoPersona()
+  const transporterId = persona.role === 'transporter' ? persona.id : 't1'
   const [accepted, setAccepted] = useState(new Set())
 
-  // Show jobs that don't have a transporter assigned yet
   const availableJobs = jobs.filter(j => !j.transporterId)
 
   const handleAccept = (jobId) => {
-    acceptJob(jobId, 't1') // Default logged in transporter Kamanzi (t1)
+    acceptJob(jobId, transporterId)
     setAccepted(prev => new Set([...prev, jobId]))
   }
 
   return (
     <div>
-      <PageHeader title="Available Jobs" description="Browse and accept transport jobs across Rwanda." />
+      <PageHeader
+        title="Available Jobs"
+        description="Accept coordinated loads on routes you serve — fill the truck instead of returning empty."
+      />
       <div className="grid gap-4">
         {availableJobs.map(job => (
 
@@ -29,7 +34,11 @@ export default function AvailableJobs() {
                 <div className="flex items-center gap-3 flex-wrap">
                   <h3 className="font-semibold text-stone-900">{job.crop}</h3>
                   <span className="text-sm text-stone-500">{job.quantity.toLocaleString()} kg</span>
-                  {job.aiOptimized && <AIRecommendedBadge label="AI Optimized Route" />}
+                {job.aiOptimized && (
+                  <span title="Route chosen by matching engine based on pickup district, capacity, and proximity">
+                    <AIRecommendedBadge label="AI Optimized Route" />
+                  </span>
+                )}
                 </div>
                 <div className="flex items-center gap-2 text-sm text-stone-600">
                   <MapPin size={14} className="text-stone-400" />

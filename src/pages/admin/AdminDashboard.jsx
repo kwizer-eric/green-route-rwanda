@@ -1,5 +1,6 @@
 import { Users, Truck, ShoppingCart, Briefcase, DollarSign, TrendingDown } from 'lucide-react'
 import { PageHeader, StatCard } from '../../components/ui'
+import InsightCallout from '../../components/story/InsightCallout'
 import { platformStats, formatRWF, formatNumber } from '../../data/mockData'
 import { useApp } from '../../context/AppContext'
 
@@ -24,14 +25,22 @@ export default function AdminDashboard() {
 
   return (
     <div>
-      <PageHeader title="Platform Overview" description="Real-time metrics across the GreenRoute ecosystem." />
+      <PageHeader
+        title="Platform Overview"
+        description="See logistics bottlenecks before they become post-harvest loss."
+      />
+      <InsightCallout>
+        When transport fails, farmers lose income and food spoils. This dashboard shows where supply, demand,
+        and transport capacity are out of sync across Rwanda.
+      </InsightCallout>
+      <p className="text-xs text-stone-400 mb-4 -mt-2">Demo metrics — projected at scale, not live production data.</p>
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <StatCard label="Total Farmers" value={formatNumber(platformStats.farmers)} icon={Users} />
-        <StatCard label="Total Transporters" value={formatNumber(totalTransporters)} icon={Truck} />
-        <StatCard label="Total Buyers" value={formatNumber(platformStats.buyers)} icon={ShoppingCart} />
-        <StatCard label="Active Jobs Today" value={totalActiveJobs.toLocaleString()} icon={Briefcase} />
-        <StatCard label="Revenue This Month" value={formatRWF(totalRevenue)} icon={DollarSign} />
-        <StatCard label="Post-Harvest Loss Reduction" value={`${lossReduction.toFixed(1)}%`} icon={TrendingDown} />
+        <StatCard label="Total Farmers" value={formatNumber(platformStats.farmers)} icon={Users} subtext="Projected" />
+        <StatCard label="Total Transporters" value={formatNumber(totalTransporters)} icon={Truck} subtext="Projected" />
+        <StatCard label="Total Buyers" value={formatNumber(platformStats.buyers)} icon={ShoppingCart} subtext="Projected" />
+        <StatCard label="Active Jobs Today" value={totalActiveJobs.toLocaleString()} icon={Briefcase} subtext="Demo" />
+        <StatCard label="Revenue This Month" value={formatRWF(totalRevenue)} icon={DollarSign} subtext="Illustrative" />
+        <StatCard label="Post-Harvest Loss Reduction" value={`${lossReduction.toFixed(1)}%`} icon={TrendingDown} subtext="Target" />
       </div>
     </div>
   )

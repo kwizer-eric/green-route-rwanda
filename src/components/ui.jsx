@@ -1,14 +1,14 @@
 export function StatCard({ label, value, icon: Icon, subtext }) {
   return (
-    <div className="bg-white rounded-2xl border border-stone-100 p-6 hover:shadow-md transition-shadow duration-300">
-      <div className="flex items-start justify-between">
-        <div className="space-y-2">
-          <p className="text-sm font-medium text-stone-500">{label}</p>
-          <p className="text-2xl font-semibold text-stone-900 tracking-tight">{value}</p>
+    <div className="bg-white rounded-2xl border border-stone-100 p-4 sm:p-6 hover:shadow-md transition-shadow duration-300 min-w-0">
+      <div className="flex items-start justify-between gap-3">
+        <div className="space-y-1.5 sm:space-y-2 min-w-0">
+          <p className="text-xs sm:text-sm font-medium text-stone-500 truncate">{label}</p>
+          <p className="text-xl sm:text-2xl font-semibold text-stone-900 tracking-tight break-words">{value}</p>
           {subtext && <p className="text-xs text-stone-400">{subtext}</p>}
         </div>
         {Icon && (
-          <div className="w-10 h-10 rounded-xl bg-primary-light flex items-center justify-center">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-primary-light flex items-center justify-center shrink-0">
             <Icon size={20} className="text-primary" strokeWidth={2} />
           </div>
         )}
@@ -19,9 +19,9 @@ export function StatCard({ label, value, icon: Icon, subtext }) {
 
 export function PageHeader({ title, description }) {
   return (
-    <div className="mb-8">
-      <h1 className="text-2xl font-semibold text-stone-900 tracking-tight">{title}</h1>
-      {description && <p className="text-stone-600 mt-1.5 text-[15px]">{description}</p>}
+    <div className="mb-6 sm:mb-8">
+      <h1 className="text-xl sm:text-2xl font-semibold text-stone-900 tracking-tight">{title}</h1>
+      {description && <p className="text-stone-600 mt-1.5 text-sm sm:text-[15px] leading-relaxed">{description}</p>}
     </div>
   )
 }

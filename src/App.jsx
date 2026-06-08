@@ -6,6 +6,7 @@ import {
 import PortalLayout from './components/PortalLayout'
 import Landing from './pages/Landing'
 import { AppContextProvider } from './context/AppContext'
+import { DemoPersonaProvider } from './context/DemoPersonaContext'
 
 import FarmerDashboard from './pages/farmer/FarmerDashboard'
 import ListProduce from './pages/farmer/ListProduce'
@@ -62,6 +63,7 @@ const adminLinks = [
 export default function App() {
   return (
     <AppContextProvider>
+      <DemoPersonaProvider>
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Landing />} />
@@ -97,6 +99,7 @@ export default function App() {
           </Route>
         </Routes>
       </BrowserRouter>
+      </DemoPersonaProvider>
     </AppContextProvider>
   )
 }

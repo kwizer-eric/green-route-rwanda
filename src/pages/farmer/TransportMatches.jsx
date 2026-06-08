@@ -1,54 +1,48 @@
 import { useState, useMemo } from 'react'
-import { Check, Truck, AlertCircle } from 'lucide-react'
+import { Check, Truck } from 'lucide-react'
 import { PageHeader, Button, Card } from '../../components/ui'
 import AIRecommendedBadge from '../../components/AIRecommendedBadge'
+import MatchExplanationCard from '../../components/story/MatchExplanationCard'
 import { useApp } from '../../context/AppContext'
+import { useDemoPersona } from '../../context/DemoPersonaContext'
 import { findBestTransporters } from '../../utils/aiMatching'
 import { formatRWF } from '../../data/mockData'
 
 export default function TransportMatches() {
   const { listings, acceptMatch, transporters } = useApp()
+  const { persona } = useDemoPersona()
+  const farmerId = persona.role === 'farmer' ? persona.id : 'f1'
   const [accepted, setAccepted] = useState(new Set())
 
-  // Find all pending listings for farmer f1
   const pendingListings = useMemo(() => {
-    return listings.filter(l => l.farmerId === 'f1' && l.status === 'Pending')
-  }, [listings])
+    return listings.filter(l => l.farmerId === farmerId && l.status === 'Pending')
+  }, [listings, farmerId])
 
-  // Generate stable matches per pending listing (seeded using listing.id to prevent rerender price fluctuations)
   const matchesByListing = useMemo(() => {
     const map = {}
     pendingListings.forEach(l => {
-      // Find matches using utility
-      const rawMatches = findBestTransporters(l, 3)
-      // Make prices and confidence stable by seeding with listing id and transporter id
+      const rawMatches = findBestTransporters(l, transporters, 3)
       map[l.id] = rawMatches.map((m, idx) => {
         const seed = l.id.charCodeAt(l.id.length - 1) + m.id.charCodeAt(m.id.length - 1)
         const stablePrice = 20000 + (seed % 30) * 1500
-        const stableConfidence = Math.min(80 + (seed % 19), 98)
-        return {
-          ...m,
-          price: stablePrice,
-          confidence: stableConfidence,
-        }
+        return { ...m, price: stablePrice }
       })
     })
     return map
-  }, [pendingListings])
+  }, [pendingListings, transporters])
 
   const handleAccept = (listingId, transporterId, price) => {
     acceptMatch(listingId, transporterId, price)
-    setAccepted(prev => {
-      const next = new Set(prev)
-      next.add(`${listingId}-${transporterId}`)
-      return next
-    })
+    setAccepted(prev => new Set(prev).add(`${listingId}-${transporterId}`))
   }
 
   return (
     <div>
-      <PageHeader title="Transport Matches" description="AI-recommended transporters for your pending listings." />
-      
+      <PageHeader
+        title="Transport Matches"
+        description="AI-recommended transporters based on route overlap, capacity, and district proximity — not just price."
+      />
+
       {pendingListings.length === 0 ? (
         <Card className="p-8 text-center max-w-xl mx-auto space-y-4">
           <div className="w-12 h-12 rounded-full bg-stone-100 flex items-center justify-center mx-auto text-stone-400">
@@ -57,7 +51,7 @@ export default function TransportMatches() {
           <div>
             <h3 className="font-semibold text-stone-900 text-lg">No Pending Listings</h3>
             <p className="text-stone-500 text-sm mt-1">
-              You don't have any pending produce listings waiting for transport matches. List some produce to see AI recommendations.
+              List produce to see how GreenRoute matches your harvest with available transport capacity.
             </p>
           </div>
         </Card>
@@ -69,14 +63,14 @@ export default function TransportMatches() {
                 <h2 className="text-md font-semibold text-stone-800">
                   Matches for {listing.crop} ({listing.quantity.toLocaleString()} kg in {listing.district})
                 </h2>
-                <p className="text-xs text-stone-400 mt-0.5">Listed Date: {listing.availableDate}</p>
+                <p className="text-xs text-stone-400 mt-0.5">Route: {listing.district} → Kigali</p>
               </div>
               <div className="grid gap-4">
                 {(matchesByListing[listing.id] || []).map((match, i) => {
                   const key = `${listing.id}-${match.id}`
                   const isAccepted = accepted.has(key)
                   return (
-                    <Card key={match.id} className="p-5">
+                    <Card key={match.id} className="p-5 space-y-4">
                       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                         <div className="space-y-2.5">
                           <div className="flex items-center gap-3 flex-wrap">
@@ -102,6 +96,9 @@ export default function TransportMatches() {
                           {isAccepted ? <><Check size={16} /> Accepted</> : 'Accept Match'}
                         </Button>
                       </div>
+                      {match.factors?.length > 0 && (
+                        <MatchExplanationCard factors={match.factors} confidence={match.confidence} compact />
+                      )}
                     </Card>
                   )
                 })}

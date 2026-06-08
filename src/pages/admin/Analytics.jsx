@@ -64,9 +64,10 @@ export default function Analytics() {
     <div>
       <PageHeader title="Analytics" description="Platform performance and revenue insights." />
       <div className="grid lg:grid-cols-2 gap-6">
-        <Card className="p-6">
-          <h3 className="text-sm font-semibold text-stone-900 mb-6">Monthly Transactions (2026)</h3>
-          <ResponsiveContainer width="100%" height={280}>
+        <Card className="p-4 sm:p-6 overflow-hidden">
+          <h3 className="text-sm font-semibold text-stone-900 mb-4 sm:mb-6">Monthly Transactions (2026)</h3>
+          <div className="w-full h-[220px] sm:h-[280px]">
+          <ResponsiveContainer width="100%" height="100%">
             <LineChart data={monthlyTransactions}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f5f5f4" vertical={false} />
               <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: '#a8a29e', fontSize: 12 }} />
@@ -75,11 +76,13 @@ export default function Analytics() {
               <Line type="monotone" dataKey="transactions" stroke="#16a34a" strokeWidth={2.5} dot={{ fill: '#16a34a', r: 4 }} activeDot={{ r: 6 }} />
             </LineChart>
           </ResponsiveContainer>
+          </div>
         </Card>
 
-        <Card className="p-6">
-          <h3 className="text-sm font-semibold text-stone-900 mb-6">Top Crops by Volume (tons)</h3>
-          <ResponsiveContainer width="100%" height={280}>
+        <Card className="p-4 sm:p-6 overflow-hidden">
+          <h3 className="text-sm font-semibold text-stone-900 mb-4 sm:mb-6">Top Crops by Volume (tons)</h3>
+          <div className="w-full h-[220px] sm:h-[280px]">
+          <ResponsiveContainer width="100%" height="100%">
             <BarChart data={dynamicCropVolume} layout="vertical" barSize={16}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f5f5f4" horizontal={false} />
               <XAxis type="number" axisLine={false} tickLine={false} tick={{ fill: '#a8a29e', fontSize: 12 }} />
@@ -88,11 +91,13 @@ export default function Analytics() {
               <Bar dataKey="volume" fill="#16a34a" radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>
+          </div>
         </Card>
 
-        <Card className="p-6 lg:col-span-2">
-          <h3 className="text-sm font-semibold text-stone-900 mb-6">Revenue by Stream</h3>
-          <ResponsiveContainer width="100%" height={300}>
+        <Card className="p-4 sm:p-6 lg:col-span-2 overflow-hidden">
+          <h3 className="text-sm font-semibold text-stone-900 mb-4 sm:mb-6">Revenue by Stream</h3>
+          <div className="w-full h-[260px] sm:h-[300px]">
+          <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
                 data={dynamicRevenueStreams}
@@ -115,6 +120,7 @@ export default function Analytics() {
               <Legend wrapperStyle={{ fontSize: 12, paddingTop: 16 }} />
             </PieChart>
           </ResponsiveContainer>
+          </div>
         </Card>
       </div>
     </div>

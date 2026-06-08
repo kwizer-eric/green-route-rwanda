@@ -2,13 +2,20 @@ import { PageHeader } from '../../components/ui'
 import StatusBadge from '../../components/StatusBadge'
 import { formatRWF } from '../../data/mockData'
 import { useApp } from '../../context/AppContext'
+import { useDemoPersona } from '../../context/DemoPersonaContext'
 
 export default function MyOrders() {
   const { orders } = useApp()
+  const { persona } = useDemoPersona()
+  const buyerId = persona.role === 'buyer' ? persona.id : 'b1'
+  const myOrders = orders.filter(o => o.buyerId === buyerId)
 
   return (
     <div>
-      <PageHeader title="My Orders" description="Track your order history and delivery status." />
+      <PageHeader
+        title="My Orders"
+        description="Track orders and coordinated delivery status — logistics, not just purchase history."
+      />
       <div className="bg-white rounded-2xl border border-stone-100 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -24,7 +31,11 @@ export default function MyOrders() {
               </tr>
             </thead>
             <tbody>
-              {orders.map(o => (
+              {myOrders.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-8 text-center text-stone-400">No orders yet.</td>
+                </tr>
+              ) : myOrders.map(o => (
                 <tr key={o.id} className="border-b border-stone-50 hover:bg-stone-50/50 transition-colors">
                   <td className="px-6 py-4 font-mono text-xs text-stone-400">{o.id.toUpperCase()}</td>
                   <td className="px-6 py-4 font-medium text-stone-900">{o.crop}</td>

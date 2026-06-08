@@ -1,4 +1,5 @@
 import { createContext, useContext, useState } from 'react'
+import { explainMatch } from '../utils/aiMatching'
 import {
   produceListings as initialListings,
   transporters as initialTransporters,
@@ -253,21 +254,21 @@ export function AppContextProvider({ children }) {
     const availableCopy = [...availableTransporters]
 
     unmatchedCopy.forEach((req, idx) => {
-      // Find a transporter
       const trans = availableCopy[idx % availableCopy.length]
       if (!usedTransporterIds.has(trans.id)) {
-        const confidence = 85 + Math.floor(Math.random() * 14)
+        const fullTransporter = transporters.find(t => t.id === trans.id) || trans
+        const { factors, confidence } = explainMatch(req, fullTransporter)
         const price = Math.floor(25000 + Math.random() * 50000)
 
         pairs.push({
           request: req,
           transporter: trans,
           confidence,
+          factors,
           price,
         })
         usedTransporterIds.add(trans.id)
 
-        // Actually apply the match!
         const lId = req.listingId || `pl${idx + 1}`
         acceptMatch(lId, trans.id, price)
       }

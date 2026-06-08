@@ -33,6 +33,19 @@ body {
   font-family: var(--font-sans);
   background-color: #fafaf9;
   color: #1c1917;
+  overflow-x: hidden;
+}
+
+:root {
+  --portal-nav-h: 4rem;
+  --portal-banner-h: 2.5rem;
+  --portal-header-h: calc(var(--portal-banner-h) + var(--portal-nav-h));
+}
+
+@media (max-width: 639px) {
+  :root {
+    --portal-banner-h: 3.5rem;
+  }
 }
 
 @keyframes fadeIn {

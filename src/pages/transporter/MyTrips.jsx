@@ -3,12 +3,14 @@ import { PageHeader, Card, Button } from '../../components/ui'
 import StatusBadge from '../../components/StatusBadge'
 import { formatRWF } from '../../data/mockData'
 import { useApp } from '../../context/AppContext'
+import { useDemoPersona } from '../../context/DemoPersonaContext'
 
 export default function MyTrips() {
   const { trips, updateTripStatus } = useApp()
+  const { persona } = useDemoPersona()
+  const transporterId = persona.role === 'transporter' ? persona.id : 't1'
 
-  // Filter for transporter Kamanzi (t1)
-  const myTrips = trips.filter(t => t.transporterId === 't1')
+  const myTrips = trips.filter(t => t.transporterId === transporterId)
   const active = myTrips.filter(t => t.status === 'In Transit' || t.status === 'Active')
   const completed = myTrips.filter(t => t.status === 'Completed')
 
@@ -57,7 +59,10 @@ export default function MyTrips() {
 
   return (
     <div>
-      <PageHeader title="My Trips" description="Track active and completed transport trips." />
+      <PageHeader
+        title="My Trips"
+        description="Move goods along the chain — each completed trip means less spoilage and fewer empty kilometers."
+      />
       <div className="space-y-8">
         <section>
           <h2 className="text-sm font-semibold text-stone-900 mb-4">Active</h2>

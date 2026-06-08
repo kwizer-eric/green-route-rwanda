@@ -69,7 +69,7 @@ export default function LiveMap() {
           <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-blue-500" /> Transporters</div>
           <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-orange-500" /> Active Routes</div>
         </div>
-        <MapContainer center={[-1.9403, 29.8739]} zoom={8} style={{ height: '520px', width: '100%' }}>
+        <MapContainer center={[-1.9403, 29.8739]} zoom={8} className="h-[280px] sm:h-[400px] lg:h-[520px] w-full">
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
