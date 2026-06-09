@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import Navbar from './Navbar'
 import Sidebar from './Sidebar'
-import DemoBanner from './story/DemoBanner'
 import JourneyStatusBar from './story/JourneyStatusBar'
 import GuidedWalkthrough from './story/GuidedWalkthrough'
 
@@ -32,7 +31,6 @@ export default function PortalLayout({ portalName, links }) {
   return (
     <div className="min-h-screen bg-stone-50 overflow-x-hidden">
       <div className="sticky top-0 z-40 bg-stone-50/95 backdrop-blur-md border-b border-stone-100/80">
-        <DemoBanner />
         <Navbar
           portalName={portalName}
           onMenuToggle={() => setMenuOpen(!menuOpen)}

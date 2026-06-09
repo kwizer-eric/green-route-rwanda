@@ -1,100 +1,73 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
-  Wheat, Truck, ShoppingCart, Shield, ArrowRight, Users, TrendingDown,
-  AlertTriangle, Route, Brain, MapPin, Menu, X,
+  Wheat, Truck, ShoppingCart, Shield, ArrowRight, Menu, X
 } from 'lucide-react'
-import { platformStats, formatNumber } from '../data/mockData'
-import { SAMPLE_MATCH } from '../utils/aiMatching'
-import HeroRouteMap from '../components/story/HeroRouteMap'
-import ValueChainDiagram from '../components/story/ValueChainDiagram'
-import MatchExplanationCard from '../components/story/MatchExplanationCard'
-import GuidedWalkthrough, { WalkthroughTrigger } from '../components/story/GuidedWalkthrough'
 
 const portals = [
   {
     to: '/farmer',
     icon: Wheat,
     title: 'Farmer',
-    description: 'List harvest and get matched transport — no informal brokers, no waiting.',
+    description: 'List harvest & get matched transport.',
+    image: 'https://images.unsplash.com/photo-1509099381441-ea3c0cf98b94?q=80&w=1172&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'
   },
   {
     to: '/transporter',
     icon: Truck,
     title: 'Transporter',
-    description: 'Fill your truck, cut empty return trips, earn from coordinated loads.',
+    description: 'Cut empty return trips, earn more.',
+    image: 'https://images.unsplash.com/photo-1633084821075-53d091982ca2?q=80&w=764&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'
   },
   {
     to: '/buyer',
     icon: ShoppingCart,
     title: 'Buyer',
-    description: 'Place orders with coordinated delivery — reliable supply, predictable timing.',
+    description: 'Reliable supply, predictable timing.',
+    image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=800'
   },
   {
     to: '/admin',
     icon: Shield,
     title: 'Admin',
-    description: 'See logistics bottlenecks before they become post-harvest loss.',
+    description: 'See bottlenecks before they happen.',
+    image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&q=80&w=800'
   },
 ]
 
-const pilotDistricts = [
-  { name: 'Nyagatare', crops: 'Maize, Beans, Sorghum', need: 'High' },
-  { name: 'Musanze', crops: 'Vegetables, Potatoes', need: 'High' },
-  { name: 'Rwamagana', crops: 'Rice, Fruits', need: 'Medium' },
-  { name: 'Huye', crops: 'Coffee, Beans', need: 'Medium' },
-  { name: 'Rubavu', crops: 'Vegetables, Fish', need: 'Medium' },
-]
-
-const stats = [
-  { value: formatNumber(platformStats.farmers), label: 'Farmers (projected)' },
-  { value: formatNumber(platformStats.transporters), label: 'Transporters (projected)' },
-  { value: formatNumber(platformStats.buyers), label: 'Buyers (projected)' },
-  { value: `${platformStats.foodWasteReduction}%`, label: 'Less food waste (target)' },
-]
-
 export default function Landing() {
-  const [walkthroughOpen, setWalkthroughOpen] = useState(false)
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
 
   const navLinks = [
-    { href: '#problem', label: 'Problem' },
-    { href: '#solution', label: 'Solution' },
-    { href: '#how-it-works', label: 'How It Works' },
-    { href: '#impact', label: 'Impact' },
+    { href: '#problem', label: 'Vision' },
     { href: '#portals', label: 'Portals' },
   ]
 
   return (
-    <div className="min-h-screen bg-stone-50">
-      <GuidedWalkthrough open={walkthroughOpen} onClose={() => setWalkthroughOpen(false)} />
-
-      <nav className="fixed top-0 inset-x-0 z-50 bg-white/90 backdrop-blur-md border-b border-stone-100">
-        <div className="max-w-6xl mx-auto flex items-center justify-between h-14 sm:h-16 px-4 sm:px-6">
-          <Link to="/" className="font-semibold text-stone-900 tracking-tight hover:text-primary transition-colors text-sm sm:text-base">
-            GreenRoute Rwanda
+    <div className="min-h-screen bg-[#111111] text-white font-sans selection:bg-[#16a34a]/30">
+      
+      {/* Floating Pill Nav */}
+      <nav className="fixed top-6 left-6 z-50">
+        <div className="bg-[#1e1e1e]/90 backdrop-blur-md border border-white/10 rounded-full h-12 px-5 flex items-center gap-4 shadow-2xl">
+          <Link to="/" className="font-semibold text-white tracking-wide text-sm flex items-center gap-2 group">
+            GreenRouteRwanda
           </Link>
-          <div className="hidden md:flex items-center gap-6 text-sm text-stone-500">
-            {navLinks.map(({ href, label }) => (
-              <a key={href} href={href} className="hover:text-stone-900 transition-colors">{label}</a>
-            ))}
-          </div>
+          <div className="w-px h-4 bg-white/20"></div>
           <button
             type="button"
-            className="md:hidden p-2 text-stone-600 hover:text-stone-900 rounded-lg hover:bg-stone-100"
+            className="text-stone-400 hover:text-white transition-colors"
             onClick={() => setMobileNavOpen(!mobileNavOpen)}
-            aria-label="Toggle menu"
           >
-            {mobileNavOpen ? <X size={22} /> : <Menu size={22} />}
+            {mobileNavOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
         </div>
         {mobileNavOpen && (
-          <div className="md:hidden border-t border-stone-100 bg-white px-4 py-3 flex flex-col gap-1">
+          <div className="absolute top-14 left-0 w-48 bg-[#1e1e1e]/95 backdrop-blur-xl border border-white/10 rounded-2xl p-4 flex flex-col gap-3 shadow-2xl animate-fade-in">
             {navLinks.map(({ href, label }) => (
               <a
                 key={href}
                 href={href}
-                className="px-3 py-2.5 rounded-lg text-sm font-medium text-stone-600 hover:bg-stone-50 hover:text-stone-900"
+                className="text-sm font-medium text-stone-300 hover:text-[#16a34a] transition-colors"
                 onClick={() => setMobileNavOpen(false)}
               >
                 {label}
@@ -104,218 +77,133 @@ export default function Landing() {
         )}
       </nav>
 
-      {/* Hero */}
-      <section className="pt-24 sm:pt-28 pb-12 sm:pb-16 px-4 sm:px-6 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(22,163,74,0.06),transparent_60%)]" />
-        <div className="max-w-6xl mx-auto relative">
-          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
-            <div className="min-w-0">
-              <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-xs sm:text-sm font-medium mb-4 sm:mb-6">
-                Interactive Concept Demo
-              </div>
-              <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-full bg-white border border-stone-200 text-primary text-xs sm:text-sm font-medium mb-3 sm:mb-4 shadow-sm">
-                <TrendingDown size={14} className="shrink-0" />
-                <span className="leading-snug">Logistics-first · Not another marketplace</span>
-              </div>
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-semibold text-stone-900 tracking-tight leading-[1.1]">
-                AI-Driven Logistics for Rwanda's Agricultural Future
-              </h1>
-              <p className="mt-4 sm:mt-5 text-base sm:text-lg text-stone-600 leading-relaxed">
-                Rwanda's farms produce enough. The bottleneck is{' '}
-                <strong className="text-stone-800">moving goods</strong> — fragmented transport,
-                empty return trips, and 20–30% post-harvest loss on perishables.
+      {/* Hero Section */}
+      <section className="relative min-h-[100svh] flex flex-col justify-between overflow-hidden pt-32 px-6 lg:px-12">
+        {/* Background Portrait Image */}
+        <div className="absolute inset-0 z-0 flex items-center justify-center overflow-hidden pointer-events-none">
+          <div className="relative w-full max-w-4xl aspect-[3/4] sm:aspect-square lg:aspect-[3/4] opacity-60 mix-blend-lighten">
+            <img 
+              src="https://images.unsplash.com/photo-1530507629858-e4977d30e9e0?auto=format&fit=crop&q=80&w=1200" 
+              alt="Portrait" 
+              className="w-full h-full object-cover"
+              style={{ maskImage: 'radial-gradient(ellipse at center, black 30%, transparent 70%)', WebkitMaskImage: 'radial-gradient(ellipse at center, black 30%, transparent 70%)' }}
+            />
+          </div>
+        </div>
+
+        {/* Top Content: Left & Right */}
+        <div className="relative z-10 grid lg:grid-cols-2 gap-12 lg:gap-8 flex-1 mt-12 sm:mt-24 w-full max-w-7xl mx-auto items-center">
+          {/* Left Content */}
+          <div className="flex flex-col justify-center">
+            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-semibold leading-[1.1] text-white tracking-tight">
+              Logistics <br/>
+              Reimagined <br/>
+              for Rwanda.
+            </h1>
+          </div>
+          
+          {/* Right Content */}
+          <div className="flex flex-col justify-center lg:items-end lg:text-left">
+            <div className="max-w-xs">
+              <p className="text-stone-400 leading-relaxed mb-8 text-sm sm:text-base font-light">
+                GreenRouteRwanda coordinates farmers, transporters, and buyers in one intelligent system to eliminate empty trips and cut delays.
               </p>
-              <p className="mt-3 text-stone-600 leading-relaxed">
-                GreenRoute coordinates farmers, transporters, and buyers in one system —
-                matching supply, demand, and transport capacity in real time.
-              </p>
-              <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row flex-wrap gap-3">
-                <WalkthroughTrigger onClick={() => setWalkthroughOpen(true)} />
-                <a
-                  href="#portals"
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-stone-200 bg-white text-stone-700 font-medium text-sm hover:border-primary/30 hover:bg-primary-light transition-all"
-                >
-                  Explore Portals <ArrowRight size={16} />
-                </a>
-              </div>
-            </div>
-            <div className="relative">
-              <HeroRouteMap />
+              <a href="#portals" className="inline-flex items-center gap-4 bg-[#16a34a] text-white rounded-full pl-1.5 pr-6 py-1.5 hover:bg-[#15803d] transition-all group shadow-[0_0_30px_-5px_rgba(22,163,74,0.4)]">
+                <div className="w-10 h-10 rounded-full bg-white text-[#16a34a] flex items-center justify-center transform group-hover:scale-95 transition-transform">
+                  <ArrowRight size={20} />
+                </div>
+                <span className="font-semibold text-sm">Explore Portals</span>
+              </a>
             </div>
           </div>
         </div>
+
+        {/* Massive Bottom Text */}
+        <div className="relative z-10 w-full flex justify-center pb-6 pt-12 select-none pointer-events-none">
+          <h2 className="text-[13vw] sm:text-[14vw] font-bold tracking-tighter text-white leading-[0.8] whitespace-nowrap opacity-90 mix-blend-overlay">
+            GreenRoute
+          </h2>
+        </div>
       </section>
 
-      {/* Problem */}
-      <section id="problem" className="py-12 sm:py-16 px-4 sm:px-6 bg-white border-y border-stone-100">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex items-center gap-3 mb-2">
-            <AlertTriangle size={20} className="text-amber-600" />
-            <span className="text-sm font-semibold text-amber-700 uppercase tracking-wide">The Problem</span>
-          </div>
-          <h2 className="text-2xl sm:text-3xl font-semibold text-stone-900 tracking-tight">
-            Agriculture works. Logistics doesn't.
+      {/* Problem Section */}
+      <section id="problem" className="py-24 lg:py-32 px-6 lg:px-12 bg-[#161616] border-t border-white/5">
+        <div className="max-w-5xl mx-auto text-center">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-semibold text-white mb-6 leading-tight tracking-tight">
+            Rwanda's harvest works. <span className="text-stone-500">Its logistics don't.</span>
           </h2>
-          <p className="mt-4 text-stone-600 max-w-2xl leading-relaxed">
-            Agriculture employs 60%+ of Rwandans and contributes ~25% of GDP — yet getting produce
-            from rural farms to urban markets remains fragmented, expensive, and slow.
+          <p className="text-lg text-stone-400 leading-relaxed mb-20 max-w-2xl mx-auto font-light">
+            From Musanze to Kigali, we focus exclusively on the movement of goods: matching rural produce with transport, navigating complex routes, and eliminating empty return trips.
           </p>
-          <div className="mt-10 grid sm:grid-cols-3 gap-6">
-            {[
-              { stat: '20–30%', label: 'Post-harvest loss on perishables', sub: 'Delays & poor coordination' },
-              { stat: '37%', label: 'Sub-Saharan food lost in supply chains', sub: 'FAO estimate' },
-              { stat: 'Empty trips', label: 'Transporters return with partial or no loads', sub: 'Fuel wasted, income lost' },
-            ].map(item => (
-              <div key={item.label} className="p-6 rounded-2xl bg-stone-50 border border-stone-100">
-                <p className="text-2xl font-semibold text-stone-900">{item.stat}</p>
-                <p className="text-sm font-medium text-stone-700 mt-2">{item.label}</p>
-                <p className="text-xs text-stone-500 mt-1">{item.sub}</p>
-              </div>
-            ))}
+          
+          <div className="grid sm:grid-cols-3 gap-8 text-left">
+            <div className="bg-[#1e1e1e] p-8 rounded-3xl border border-white/5 hover:border-[#16a34a]/30 transition-colors">
+              <p className="text-4xl sm:text-5xl font-semibold text-white mb-3 tracking-tighter">20-30%</p>
+              <p className="text-sm font-medium text-white tracking-wide uppercase">Post-harvest loss</p>
+              <p className="text-sm text-stone-400 mt-3 leading-relaxed font-light">Due to transport delays and fragmented coordination across rural sectors.</p>
+            </div>
+            <div className="bg-[#1e1e1e] p-8 rounded-3xl border border-white/5 hover:border-[#16a34a]/30 transition-colors">
+              <p className="text-4xl sm:text-5xl font-semibold text-white mb-3 tracking-tighter">1/3</p>
+              <p className="text-sm font-medium text-white tracking-wide uppercase">Lost in transit</p>
+              <p className="text-sm text-stone-400 mt-3 leading-relaxed font-light">Of fresh agricultural value perishes before reaching main Kigali markets.</p>
+            </div>
+            <div className="bg-[#1e1e1e] p-8 rounded-3xl border border-white/5 hover:border-[#16a34a]/30 transition-colors">
+              <p className="text-4xl sm:text-5xl font-semibold text-white mb-3 tracking-tighter">Empty</p>
+              <p className="text-sm font-medium text-white tracking-wide uppercase">Return trips</p>
+              <p className="text-sm text-stone-400 mt-3 leading-relaxed font-light">Transporters wasting fuel on empty trips returning to the provinces.</p>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Solution */}
-      <section id="solution" className="py-12 sm:py-16 px-4 sm:px-6">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex items-center gap-3 mb-2">
-            <Route size={20} className="text-primary" />
-            <span className="text-sm font-semibold text-primary uppercase tracking-wide">The Solution</span>
-          </div>
-          <h2 className="text-2xl sm:text-3xl font-semibold text-stone-900 tracking-tight">
-            Logistics-first coordination — not just market access
-          </h2>
-          <p className="mt-4 text-stone-600 max-w-2xl leading-relaxed">
-            Unlike price-info platforms (E-Soko) or urban ride apps (SafeBoda), GreenRoute focuses on
-            the movement of goods: matching produce with transport, optimizing routes, and reducing empty trips.
-          </p>
-          <div className="mt-10 grid md:grid-cols-3 gap-6">
-            {[
-              { title: 'Connect all stakeholders', desc: 'Farmers, transporters, and buyers share one logistics network.' },
-              { title: 'Match supply + demand + transport', desc: 'AI pairs produce listings with the best available vehicle and route.' },
-              { title: 'Optimize every trip', desc: 'Combine nearby loads, cut empty returns, reduce spoilage and emissions.' },
-            ].map(item => (
-              <div key={item.title} className="p-6 rounded-2xl bg-white border border-stone-100">
-                <h3 className="font-semibold text-stone-900">{item.title}</h3>
-                <p className="text-sm text-stone-600 mt-2 leading-relaxed">{item.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* How it works */}
-      <section id="how-it-works" className="py-12 sm:py-16 px-4 sm:px-6 bg-white border-y border-stone-100">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex items-center gap-3 mb-2">
-            <Brain size={20} className="text-primary" />
-            <span className="text-sm font-semibold text-primary uppercase tracking-wide">How It Works</span>
-          </div>
-          <h2 className="text-2xl sm:text-3xl font-semibold text-stone-900 tracking-tight mb-2">
-            From field to market in one coordinated flow
-          </h2>
-          <p className="text-stone-600 mb-8">Click any step to try it in the interactive demo.</p>
-          <ValueChainDiagram linked />
-
-          <div className="mt-12 p-6 rounded-2xl border border-primary/15 bg-primary-light/20">
-            <h3 className="font-semibold text-stone-900 mb-1">AI matching — transparent, not a black box</h3>
-            <p className="text-sm text-stone-600 mb-4">
-              In this demo, matching is rule-based and fully visible. In production, models improve with more trip data.
+      {/* Portals Section */}
+      <section id="portals" className="py-24 lg:py-32 px-6 lg:px-12 bg-[#111111] border-t border-white/5">
+        <div className="max-w-7xl mx-auto">
+          <div className="mb-16">
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-semibold mb-4 tracking-tight">
+              Explore the platform.
+            </h2>
+            <p className="text-stone-400 text-lg max-w-2xl leading-relaxed font-light">
+              Select a portal to enter the demo and experience the network.
             </p>
-            <MatchExplanationCard factors={SAMPLE_MATCH.factors} confidence={SAMPLE_MATCH.confidence} />
           </div>
-        </div>
-      </section>
 
-      {/* Pilot districts */}
-      <section className="py-12 sm:py-16 px-4 sm:px-6 bg-white border-y border-stone-100">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex items-center gap-3 mb-2">
-            <MapPin size={20} className="text-primary" />
-            <span className="text-sm font-semibold text-primary uppercase tracking-wide">Pilot Districts</span>
-          </div>
-          <h2 className="text-2xl sm:text-3xl font-semibold text-stone-900 tracking-tight mb-6 sm:mb-8">Phase 1 rollout targets</h2>
-          <div className="overflow-x-auto rounded-2xl border border-stone-100">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-stone-50 border-b border-stone-100">
-                  <th className="text-left px-6 py-3 font-medium text-stone-500">District</th>
-                  <th className="text-left px-6 py-3 font-medium text-stone-500">Key Crops</th>
-                  <th className="text-left px-6 py-3 font-medium text-stone-500">Transport Need</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pilotDistricts.map(d => (
-                  <tr key={d.name} className="border-b border-stone-50 last:border-0">
-                    <td className="px-6 py-3 font-medium text-stone-900">{d.name}</td>
-                    <td className="px-6 py-3 text-stone-600">{d.crops}</td>
-                    <td className="px-6 py-3">
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                        d.need === 'High' ? 'bg-primary-light text-primary' : 'bg-stone-100 text-stone-600'
-                      }`}>
-                        {d.need}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      {/* Portals */}
-      <section id="portals" className="py-12 sm:py-16 px-4 sm:px-6">
-        <div className="max-w-6xl mx-auto">
-          <h2 className="text-2xl sm:text-3xl font-semibold text-stone-900 tracking-tight mb-2">Explore the demo</h2>
-          <p className="text-stone-600 mb-8">Each portal shows one role in the same logistics network.</p>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {portals.map(({ to, icon: Icon, title, description }) => (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {portals.map(({ to, icon: Icon, title, description, image }) => (
               <Link
                 key={to}
                 to={to}
-                className="group bg-white rounded-2xl border border-stone-100 p-6 hover:border-primary/20 hover:shadow-lg transition-all duration-300"
+                className="group relative h-[400px] rounded-3xl overflow-hidden block border border-white/5 bg-[#1e1e1e]"
               >
-                <div className="w-11 h-11 rounded-xl bg-primary-light flex items-center justify-center mb-5 group-hover:bg-primary transition-colors duration-300">
-                  <Icon size={22} className="text-primary group-hover:text-white transition-colors duration-300" />
+                <div className="absolute inset-0 z-0">
+                  <img src={image} alt={title} className="w-full h-full object-cover opacity-40 group-hover:opacity-60 transition-all duration-700 group-hover:scale-105 transform mix-blend-overlay" />
                 </div>
-                <h3 className="text-lg font-semibold text-stone-900 mb-2">{title}</h3>
-                <p className="text-sm text-stone-500 leading-relaxed mb-5">{description}</p>
-                <span className="inline-flex items-center gap-1.5 text-sm font-medium text-primary group-hover:gap-2.5 transition-all">
-                  Enter Portal <ArrowRight size={16} />
-                </span>
+                <div className="absolute inset-0 bg-gradient-to-t from-[#111111] via-[#111111]/80 to-transparent z-10"></div>
+                <div className="absolute inset-0 p-8 flex flex-col justify-end z-20">
+                  <div className="w-12 h-12 rounded-full bg-[#1e1e1e] border border-white/10 flex items-center justify-center mb-6 transform group-hover:-translate-y-2 transition-transform duration-500 shadow-xl">
+                    <Icon size={20} className="text-[#16a34a]" />
+                  </div>
+                  <h3 className="text-2xl font-semibold text-white mb-2 tracking-tight">{title}</h3>
+                  <p className="text-stone-400 text-sm leading-relaxed mb-6 font-light">
+                    {description}
+                  </p>
+                  <div className="inline-flex items-center gap-2 text-sm font-semibold text-[#16a34a] uppercase tracking-wider">
+                    Enter <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform duration-300" />
+                  </div>
+                </div>
               </Link>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Impact stats */}
-      <section id="impact" className="border-t border-stone-100 bg-stone-900 text-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
-          <p className="text-center text-sm text-stone-400 mb-8">Projected impact at national scale — demo metrics for illustration</p>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
-            {stats.map(({ value, label }) => (
-              <div key={label} className="text-center">
-                <p className="text-3xl sm:text-4xl font-semibold tracking-tight">{value}</p>
-                <p className="text-sm text-stone-400 mt-1">{label}</p>
-              </div>
-            ))}
-          </div>
-          <div className="mt-12 text-center">
-            <WalkthroughTrigger onClick={() => setWalkthroughOpen(true)} className="mx-auto" />
-          </div>
-        </div>
-      </section>
-
-      <footer className="border-t border-stone-100 py-6 sm:py-8 px-4 sm:px-6">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-stone-400">
-          <div className="flex items-center gap-2">
-            <Users size={14} />
-            <span>Built for Rwanda's agricultural logistics ecosystem</span>
-          </div>
-          <span>&copy; 2026 GreenRoute Rwanda · Concept Demo</span>
+      {/* Footer */}
+      <footer className="py-8 px-6 lg:px-12 bg-[#0a0a0a] border-t border-white/5 text-stone-500 text-sm font-light">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+          <span className="font-medium text-stone-400">&copy; 2026 GreenRouteRwanda Concept</span>
+          <span className="flex items-center gap-2">
+            Built for agricultural logistics
+          </span>
         </div>
       </footer>
     </div>
