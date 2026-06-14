@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import {
   Wheat, Truck, ShoppingCart, ArrowRight, Menu, X
 } from 'lucide-react'
+import { useAuth } from '../context/AuthContext'
+import { portalPathForRole } from '../lib/auth'
 
 const portals = [
   {
@@ -30,44 +32,103 @@ const portals = [
 
 export default function Landing() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
+  const { user, profile } = useAuth()
 
   const navLinks = [
     { href: '#problem', label: 'Vision' },
     { href: '#portals', label: 'Portals' },
   ]
 
+  const portalPath = profile?.portal_role ? portalPathForRole(profile.portal_role) : null
+
   return (
     <div className="min-h-screen bg-[#111111] text-white font-sans selection:bg-[#16a34a]/30">
       
       {/* Floating Pill Nav */}
-      <nav className="fixed top-6 left-6 z-50">
-        <div className="bg-[#1e1e1e]/90 backdrop-blur-md border border-white/10 rounded-full h-12 px-5 flex items-center gap-4 shadow-2xl">
-          <Link to="/" className="font-semibold text-white tracking-wide text-sm flex items-center gap-2 group">
-            GreenRouteRwanda
-          </Link>
-          <div className="w-px h-4 bg-white/20"></div>
-          <button
-            type="button"
-            className="text-stone-400 hover:text-white transition-colors"
-            onClick={() => setMobileNavOpen(!mobileNavOpen)}
-          >
-            {mobileNavOpen ? <X size={20} /> : <Menu size={20} />}
-          </button>
-        </div>
-        {mobileNavOpen && (
-          <div className="absolute top-14 left-0 w-48 bg-[#1e1e1e]/95 backdrop-blur-xl border border-white/10 rounded-2xl p-4 flex flex-col gap-3 shadow-2xl animate-fade-in">
-            {navLinks.map(({ href, label }) => (
-              <a
-                key={href}
-                href={href}
-                className="text-sm font-medium text-stone-300 hover:text-[#16a34a] transition-colors"
-                onClick={() => setMobileNavOpen(false)}
-              >
-                {label}
-              </a>
-            ))}
+      <nav className="fixed top-6 left-6 right-6 z-50 flex items-start justify-between gap-4 pointer-events-none">
+        <div className="pointer-events-auto">
+          <div className="bg-[#1e1e1e]/90 backdrop-blur-md border border-white/10 rounded-full h-12 px-5 flex items-center gap-4 shadow-2xl">
+            <Link to="/" className="font-semibold text-white tracking-wide text-sm flex items-center gap-2 group">
+              GreenRouteRwanda
+            </Link>
+            <div className="w-px h-4 bg-white/20"></div>
+            <button
+              type="button"
+              className="text-stone-400 hover:text-white transition-colors"
+              onClick={() => setMobileNavOpen(!mobileNavOpen)}
+            >
+              {mobileNavOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
           </div>
-        )}
+          {mobileNavOpen && (
+            <div className="absolute top-14 left-0 w-48 bg-[#1e1e1e]/95 backdrop-blur-xl border border-white/10 rounded-2xl p-4 flex flex-col gap-3 shadow-2xl animate-fade-in">
+              {navLinks.map(({ href, label }) => (
+                <a
+                  key={href}
+                  href={href}
+                  className="text-sm font-medium text-stone-300 hover:text-[#16a34a] transition-colors"
+                  onClick={() => setMobileNavOpen(false)}
+                >
+                  {label}
+                </a>
+              ))}
+              <div className="border-t border-white/10 pt-3 flex flex-col gap-2">
+                {user && portalPath ? (
+                  <Link
+                    to={portalPath}
+                    className="text-sm font-medium text-[#16a34a] hover:text-[#15803d] transition-colors"
+                    onClick={() => setMobileNavOpen(false)}
+                  >
+                    My portal
+                  </Link>
+                ) : (
+                  <>
+                    <Link
+                      to="/login"
+                      className="text-sm font-medium text-stone-300 hover:text-[#16a34a] transition-colors"
+                      onClick={() => setMobileNavOpen(false)}
+                    >
+                      Log in
+                    </Link>
+                    <Link
+                      to="/signup"
+                      className="text-sm font-medium text-[#16a34a] hover:text-[#15803d] transition-colors"
+                      onClick={() => setMobileNavOpen(false)}
+                    >
+                      Sign up
+                    </Link>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="pointer-events-auto hidden sm:flex items-center gap-2 bg-[#1e1e1e]/90 backdrop-blur-md border border-white/10 rounded-full h-12 px-2 shadow-2xl">
+          {user && portalPath ? (
+            <Link
+              to={portalPath}
+              className="text-sm font-medium text-white hover:text-[#16a34a] px-4 py-2 rounded-full transition-colors"
+            >
+              My portal
+            </Link>
+          ) : (
+            <>
+              <Link
+                to="/login"
+                className="text-sm font-medium text-stone-300 hover:text-white px-4 py-2 rounded-full transition-colors"
+              >
+                Log in
+              </Link>
+              <Link
+                to="/signup"
+                className="text-sm font-semibold text-white bg-[#16a34a] hover:bg-[#15803d] px-4 py-2 rounded-full transition-colors"
+              >
+                Sign up
+              </Link>
+            </>
+          )}
+        </div>
       </nav>
 
       {/* Hero Section */}
