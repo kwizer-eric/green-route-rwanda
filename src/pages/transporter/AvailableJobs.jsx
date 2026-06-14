@@ -4,12 +4,11 @@ import { PageHeader, Button, Card } from '../../components/ui'
 import AIRecommendedBadge from '../../components/AIRecommendedBadge'
 import { formatRWF } from '../../data/mockData'
 import { useApp } from '../../context/AppContext'
-import { useDemoPersona } from '../../context/DemoPersonaContext'
+import { usePortalIdentity } from '../../context/AuthContext'
 
 export default function AvailableJobs() {
   const { jobs, acceptJob } = useApp()
-  const { persona } = useDemoPersona()
-  const transporterId = persona.role === 'transporter' ? persona.id : 't1'
+  const { entityId: transporterId } = usePortalIdentity()
   const [accepted, setAccepted] = useState(new Set())
 
   const availableJobs = jobs.filter(j => !j.transporterId)

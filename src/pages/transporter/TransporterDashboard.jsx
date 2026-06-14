@@ -3,12 +3,11 @@ import { PageHeader, StatCard } from '../../components/ui'
 import InsightCallout from '../../components/story/InsightCallout'
 import { transporterDashboard, formatRWF } from '../../data/mockData'
 import { useApp } from '../../context/AppContext'
-import { useDemoPersona } from '../../context/DemoPersonaContext'
+import { usePortalIdentity } from '../../context/AuthContext'
 
 export default function TransporterDashboard() {
   const { jobs, trips } = useApp()
-  const { persona } = useDemoPersona()
-  const transporterId = persona.role === 'transporter' ? persona.id : 't1'
+  const { entityId: transporterId } = usePortalIdentity()
 
   const myTrips = trips.filter(t => t.transporterId === transporterId)
   

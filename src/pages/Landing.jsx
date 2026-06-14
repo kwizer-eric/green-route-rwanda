@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
-  Wheat, Truck, ShoppingCart, Shield, ArrowRight, Menu, X
+  Wheat, Truck, ShoppingCart, ArrowRight, Menu, X
 } from 'lucide-react'
 
 const portals = [
@@ -25,13 +25,6 @@ const portals = [
     title: 'Buyer',
     description: 'Reliable supply, predictable timing.',
     image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=800'
-  },
-  {
-    to: '/admin',
-    icon: Shield,
-    title: 'Admin',
-    description: 'See bottlenecks before they happen.',
-    image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&q=80&w=800'
   },
 ]
 
@@ -168,7 +161,7 @@ export default function Landing() {
             </p>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {portals.map(({ to, icon: Icon, title, description, image }) => (
               <Link
                 key={to}

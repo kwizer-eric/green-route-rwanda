@@ -4,9 +4,12 @@ import {
   ShoppingCart, Search, ClipboardList, Map, Brain, BarChart3, Heart,
 } from 'lucide-react'
 import PortalLayout from './components/PortalLayout'
+import ProtectedRoute from './components/ProtectedRoute'
 import Landing from './pages/Landing'
+import Login from './pages/Login'
+import Signup from './pages/Signup'
 import { AppContextProvider } from './context/AppContext'
-import { DemoPersonaProvider } from './context/DemoPersonaContext'
+import { AuthProvider } from './context/AuthContext'
 
 import FarmerDashboard from './pages/farmer/FarmerDashboard'
 import ListProduce from './pages/farmer/ListProduce'
@@ -62,45 +65,74 @@ const adminLinks = [
 
 export default function App() {
   return (
-    <AppContextProvider>
-      <DemoPersonaProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Landing />} />
+    <AuthProvider>
+      <AppContextProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Landing />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
 
-          <Route path="/farmer" element={<PortalLayout portalName="Farmer Portal" links={farmerLinks} />}>
-            <Route index element={<FarmerDashboard />} />
-            <Route path="list" element={<ListProduce />} />
-            <Route path="listings" element={<MyListings />} />
-            <Route path="matches" element={<TransportMatches />} />
-          </Route>
+            <Route
+              path="/farmer"
+              element={
+                <ProtectedRoute allowedRole="farmer">
+                  <PortalLayout portalName="Farmer Portal" links={farmerLinks} />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<FarmerDashboard />} />
+              <Route path="list" element={<ListProduce />} />
+              <Route path="listings" element={<MyListings />} />
+              <Route path="matches" element={<TransportMatches />} />
+            </Route>
 
-          <Route path="/transporter" element={<PortalLayout portalName="Transporter Portal" links={transporterLinks} />}>
-            <Route index element={<TransporterDashboard />} />
-            <Route path="register" element={<RegisterVehicle />} />
-            <Route path="jobs" element={<AvailableJobs />} />
-            <Route path="trips" element={<MyTrips />} />
-            <Route path="earnings" element={<Earnings />} />
-          </Route>
+            <Route
+              path="/transporter"
+              element={
+                <ProtectedRoute allowedRole="transporter">
+                  <PortalLayout portalName="Transporter Portal" links={transporterLinks} />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<TransporterDashboard />} />
+              <Route path="register" element={<RegisterVehicle />} />
+              <Route path="jobs" element={<AvailableJobs />} />
+              <Route path="trips" element={<MyTrips />} />
+              <Route path="earnings" element={<Earnings />} />
+            </Route>
 
-          <Route path="/buyer" element={<PortalLayout portalName="Buyer Portal" links={buyerLinks} />}>
-            <Route index element={<BuyerDashboard />} />
-            <Route path="browse" element={<BrowseProduce />} />
-            <Route path="order" element={<PlaceOrder />} />
-            <Route path="orders" element={<MyOrders />} />
-          </Route>
+            <Route
+              path="/buyer"
+              element={
+                <ProtectedRoute allowedRole="buyer">
+                  <PortalLayout portalName="Buyer Portal" links={buyerLinks} />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<BuyerDashboard />} />
+              <Route path="browse" element={<BrowseProduce />} />
+              <Route path="order" element={<PlaceOrder />} />
+              <Route path="orders" element={<MyOrders />} />
+            </Route>
 
-          <Route path="/admin" element={<PortalLayout portalName="Admin Dashboard" links={adminLinks} />}>
-            <Route index element={<AdminDashboard />} />
-            <Route path="map" element={<LiveMap />} />
-            <Route path="matching" element={<AIMatching />} />
-            <Route path="analytics" element={<Analytics />} />
-            <Route path="impact" element={<ImpactMetrics />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
-      </DemoPersonaProvider>
-    </AppContextProvider>
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute allowedRole="admin">
+                  <PortalLayout portalName="Admin Dashboard" links={adminLinks} />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<AdminDashboard />} />
+              <Route path="map" element={<LiveMap />} />
+              <Route path="matching" element={<AIMatching />} />
+              <Route path="analytics" element={<Analytics />} />
+              <Route path="impact" element={<ImpactMetrics />} />
+            </Route>
+          </Routes>
+        </BrowserRouter>
+      </AppContextProvider>
+    </AuthProvider>
   )
 }
-

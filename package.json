@@ -7,9 +7,16 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "check:supabase": "node scripts/check-supabase.mjs",
+    "db:migrate": "node scripts/db-migrate.mjs",
+    "db:find-pooler": "node scripts/find-pooler.mjs",
+    "db:push": "npx supabase@latest db push"
   },
   "dependencies": {
+    "@rolldown/binding-linux-x64-gnu": "^1.1.1",
+    "@supabase/supabase-js": "^2.108.1",
+    "@tailwindcss/oxide-linux-x64-gnu": "^4.3.1",
     "leaflet": "^1.9.4",
     "lucide-react": "^1.17.0",
     "react": "^19.2.6",
@@ -28,6 +35,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.6.0",
+    "pg": "^8.21.0",
     "tailwindcss": "^4.3.0",
     "vite": "^8.0.12"
   }

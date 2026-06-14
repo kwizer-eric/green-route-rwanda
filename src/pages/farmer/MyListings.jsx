@@ -2,12 +2,11 @@ import { PageHeader } from '../../components/ui'
 import StatusBadge from '../../components/StatusBadge'
 import { formatRWF } from '../../data/mockData'
 import { useApp } from '../../context/AppContext'
-import { useDemoPersona } from '../../context/DemoPersonaContext'
+import { usePortalIdentity } from '../../context/AuthContext'
 
 export default function MyListings() {
   const { listings } = useApp()
-  const { persona } = useDemoPersona()
-  const farmerId = persona.role === 'farmer' ? persona.id : 'f1'
+  const { entityId: farmerId } = usePortalIdentity()
   const myListings = listings.filter(l => l.farmerId === farmerId)
 
   return (

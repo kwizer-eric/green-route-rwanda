@@ -3,12 +3,11 @@ import { PageHeader, Card, Button } from '../../components/ui'
 import StatusBadge from '../../components/StatusBadge'
 import { formatRWF } from '../../data/mockData'
 import { useApp } from '../../context/AppContext'
-import { useDemoPersona } from '../../context/DemoPersonaContext'
+import { usePortalIdentity } from '../../context/AuthContext'
 
 export default function MyTrips() {
   const { trips, updateTripStatus } = useApp()
-  const { persona } = useDemoPersona()
-  const transporterId = persona.role === 'transporter' ? persona.id : 't1'
+  const { entityId: transporterId } = usePortalIdentity()
 
   const myTrips = trips.filter(t => t.transporterId === transporterId)
   const active = myTrips.filter(t => t.status === 'In Transit' || t.status === 'Active')

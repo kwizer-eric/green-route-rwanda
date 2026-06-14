@@ -4,14 +4,13 @@ import { PageHeader, Button, Card } from '../../components/ui'
 import AIRecommendedBadge from '../../components/AIRecommendedBadge'
 import MatchExplanationCard from '../../components/story/MatchExplanationCard'
 import { useApp } from '../../context/AppContext'
-import { useDemoPersona } from '../../context/DemoPersonaContext'
+import { usePortalIdentity } from '../../context/AuthContext'
 import { findBestTransporters } from '../../utils/aiMatching'
 import { formatRWF } from '../../data/mockData'
 
 export default function TransportMatches() {
   const { listings, acceptMatch, transporters } = useApp()
-  const { persona } = useDemoPersona()
-  const farmerId = persona.role === 'farmer' ? persona.id : 'f1'
+  const { entityId: farmerId } = usePortalIdentity()
   const [accepted, setAccepted] = useState(new Set())
 
   const pendingListings = useMemo(() => {

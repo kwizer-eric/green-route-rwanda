@@ -3,7 +3,6 @@ import { Outlet, useLocation } from 'react-router-dom'
 import Navbar from './Navbar'
 import Sidebar from './Sidebar'
 import JourneyStatusBar from './story/JourneyStatusBar'
-import GuidedWalkthrough from './story/GuidedWalkthrough'
 
 const roleFromPath = pathname => {
   if (pathname.startsWith('/farmer')) return 'farmer'
@@ -15,7 +14,6 @@ const roleFromPath = pathname => {
 
 export default function PortalLayout({ portalName, links }) {
   const [menuOpen, setMenuOpen] = useState(false)
-  const [walkthroughOpen, setWalkthroughOpen] = useState(false)
   const { pathname } = useLocation()
   const role = roleFromPath(pathname)
 
@@ -35,10 +33,8 @@ export default function PortalLayout({ portalName, links }) {
           portalName={portalName}
           onMenuToggle={() => setMenuOpen(!menuOpen)}
           menuOpen={menuOpen}
-          onStartWalkthrough={() => setWalkthroughOpen(true)}
         />
       </div>
-      <GuidedWalkthrough open={walkthroughOpen} onClose={() => setWalkthroughOpen(false)} />
       <div className="flex w-full max-w-[100vw]">
         <Sidebar links={links} open={menuOpen} onClose={() => setMenuOpen(false)} />
         <main className="flex-1 min-w-0 overflow-x-hidden">

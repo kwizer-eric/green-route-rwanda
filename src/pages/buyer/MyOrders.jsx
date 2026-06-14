@@ -2,12 +2,11 @@ import { PageHeader } from '../../components/ui'
 import StatusBadge from '../../components/StatusBadge'
 import { formatRWF } from '../../data/mockData'
 import { useApp } from '../../context/AppContext'
-import { useDemoPersona } from '../../context/DemoPersonaContext'
+import { usePortalIdentity } from '../../context/AuthContext'
 
 export default function MyOrders() {
   const { orders } = useApp()
-  const { persona } = useDemoPersona()
-  const buyerId = persona.role === 'buyer' ? persona.id : 'b1'
+  const { entityId: buyerId } = usePortalIdentity()
   const myOrders = orders.filter(o => o.buyerId === buyerId)
 
   return (

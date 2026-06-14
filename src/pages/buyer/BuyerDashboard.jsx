@@ -3,12 +3,11 @@ import { PageHeader, StatCard } from '../../components/ui'
 import InsightCallout from '../../components/story/InsightCallout'
 import { buyerDashboard, formatRWF } from '../../data/mockData'
 import { useApp } from '../../context/AppContext'
-import { useDemoPersona } from '../../context/DemoPersonaContext'
+import { usePortalIdentity } from '../../context/AuthContext'
 
 export default function BuyerDashboard() {
   const { listings, orders } = useApp()
-  const { persona } = useDemoPersona()
-  const buyerId = persona.role === 'buyer' ? persona.id : 'b1'
+  const { entityId: buyerId } = usePortalIdentity()
 
   const myOrders = orders.filter(o => o.buyerId === buyerId)
   

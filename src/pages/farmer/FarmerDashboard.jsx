@@ -3,12 +3,11 @@ import { PageHeader, StatCard } from '../../components/ui'
 import InsightCallout from '../../components/story/InsightCallout'
 import { farmerDashboard, formatRWF } from '../../data/mockData'
 import { useApp } from '../../context/AppContext'
-import { useDemoPersona } from '../../context/DemoPersonaContext'
+import { usePortalIdentity } from '../../context/AuthContext'
 
 export default function FarmerDashboard() {
   const { listings } = useApp()
-  const { persona } = useDemoPersona()
-  const farmerId = persona.role === 'farmer' ? persona.id : 'f1'
+  const { entityId: farmerId, fullName } = usePortalIdentity()
 
   const myListings = listings.filter(l => l.farmerId === farmerId)
 
@@ -26,7 +25,7 @@ export default function FarmerDashboard() {
   return (
     <div>
       <PageHeader
-        title={`Welcome, ${farmerDashboard.name}`}
+        title={`Welcome, ${fullName || farmerDashboard.name}`}
         description="Turn harvest into market access without waiting for informal brokers."
       />
       <InsightCallout>
