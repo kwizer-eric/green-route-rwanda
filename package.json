@@ -11,7 +11,8 @@
     "check:supabase": "node scripts/check-supabase.mjs",
     "db:migrate": "node scripts/db-migrate.mjs",
     "db:find-pooler": "node scripts/find-pooler.mjs",
-    "db:push": "npx supabase@latest db push"
+    "db:push": "npx supabase@latest db push",
+    "seed:admin": "node scripts/seed-admin.mjs"
   },
   "dependencies": {
     "@rolldown/binding-linux-x64-gnu": "^1.1.1",
@@ -23,7 +24,8 @@
     "react-dom": "^19.2.6",
     "react-leaflet": "^5.0.0",
     "react-router-dom": "^7.16.0",
-    "recharts": "^3.8.1"
+    "recharts": "^3.8.1",
+    "ws": "^8.21.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

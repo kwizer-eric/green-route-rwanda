@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react'
-import { supabase, isSupabaseConfigured } from '../lib/supabase'
+import { supabase, isSupabaseConfigured, supabaseUrl, supabaseAnonKey } from '../lib/supabase'
 import { formatAuthError } from '../lib/formatAuthError'
 import {
   portalPathForRole,
@@ -9,6 +9,31 @@ import {
 } from '../lib/auth'
 
 const AuthContext = createContext(null)
+
+function isNetworkAuthError(err) {
+  const msg = (err?.message || String(err || '')).toLowerCase()
+  return (
+    msg.includes('failed to fetch') ||
+    msg.includes('networkerror') ||
+    msg.includes('authretryablefetcherror')
+  )
+}
+
+async function authApi(path, payload) {
+  const res = await fetch(`${supabaseUrl}/auth/v1/${path}`, {
+    method: 'POST',
+    headers: {
+      apikey: supabaseAnonKey,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) {
+    throw new Error(data?.msg || data?.error_description || data?.message || 'Auth request failed')
+  }
+  return data
+}
 
 async function fetchProfile(userId) {
   const { data, error } = await supabase
@@ -128,6 +153,28 @@ export function AuthProvider({ children }) {
       if (error) throw error
       return data
     } catch (err) {
+      if (isNetworkAuthError(err)) {
+        const fallback = await authApi('signup', {
+          email,
+          password,
+          data: {
+            full_name: fullName,
+            portal_role: role,
+          },
+        })
+        return {
+          user: fallback.user || null,
+          session: fallback.access_token
+            ? {
+                access_token: fallback.access_token,
+                refresh_token: fallback.refresh_token,
+                expires_in: fallback.expires_in,
+                token_type: fallback.token_type,
+                user: fallback.user,
+              }
+            : null,
+        }
+      }
       throw new Error(formatAuthError(err))
     }
   }
@@ -150,6 +197,36 @@ export function AuthProvider({ children }) {
 
       return { ...data, profile: p }
     } catch (err) {
+      if (isNetworkAuthError(err)) {
+        const fallback = await authApi('token?grant_type=password', { email, password })
+        if (fallback.access_token && fallback.refresh_token) {
+          await supabase.auth.setSession({
+            access_token: fallback.access_token,
+            refresh_token: fallback.refresh_token,
+          })
+        }
+
+        let p = null
+        if (fallback.user) {
+          p = await loadUserProfile(fallback.user)
+          setProfile(p)
+          setUser(fallback.user)
+        }
+
+        return {
+          user: fallback.user || null,
+          session: fallback.access_token
+            ? {
+                access_token: fallback.access_token,
+                refresh_token: fallback.refresh_token,
+                expires_in: fallback.expires_in,
+                token_type: fallback.token_type,
+                user: fallback.user,
+              }
+            : null,
+          profile: p,
+        }
+      }
       throw new Error(formatAuthError(err))
     }
   }

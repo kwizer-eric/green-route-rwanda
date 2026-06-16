@@ -17,7 +17,7 @@ export function formatAuthError(err) {
   }
 
   if (lower.includes('email rate limit')) {
-    return 'Too many signup attempts. Wait a few minutes or raise Auth rate limits in Supabase.'
+    return 'Too many signup attempts. Use Log in instead if you already have an account, wait ~1 hour, or raise limits in Supabase → Authentication → Rate Limits. To create the admin account run: npm run seed:admin (requires SUPABASE_SERVICE_ROLE_KEY in .env.local).'
   }
 
   return msg
