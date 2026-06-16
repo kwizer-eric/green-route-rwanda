@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import AuthPageLayout, { AuthInput, AuthButton, AuthError } from '../components/AuthPageLayout'
 import { useAuth } from '../context/AuthContext'
+import { getSupabaseConfigError } from '../lib/supabase'
 import { PORTAL_LABELS, isPublicPortalRole, isPortalRole, portalPathForRole } from '../lib/auth'
 
 export default function Login() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const { signIn, user, profile } = useAuth()
+  const configError = getSupabaseConfigError()
 
   const portalParam = searchParams.get('portal')
   const portalHint = isPublicPortalRole(portalParam) ? PORTAL_LABELS[portalParam] : null
@@ -66,7 +68,7 @@ export default function Login() {
       }
     >
       <form onSubmit={handleSubmit} className="space-y-5">
-        <AuthError message={error} />
+        <AuthError message={configError || error} />
         <AuthInput
           label="Email"
           type="email"
@@ -85,7 +87,7 @@ export default function Login() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
-        <AuthButton type="submit" disabled={submitting}>
+        <AuthButton type="submit" disabled={submitting || !!configError}>
           {submitting ? 'Signing in…' : 'Sign in'}
         </AuthButton>
       </form>

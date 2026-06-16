@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react'
-import { supabase } from '../lib/supabase'
+import { supabase, isSupabaseConfigured } from '../lib/supabase'
+import { formatAuthError } from '../lib/formatAuthError'
 import {
-  isPortalRole,
   portalPathForRole,
   ROLE_ENTITY_IDS,
   resolvePortalRole,
@@ -61,21 +61,36 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   const loadSession = useCallback(async () => {
-    const { data: { session } } = await supabase.auth.getSession()
-    setUser(session?.user ?? null)
-
-    if (session?.user) {
-      const p = await loadUserProfile(session.user)
-      setProfile(p)
-    } else {
-      setProfile(null)
+    if (!isSupabaseConfigured()) {
+      setLoading(false)
+      return
     }
 
-    setLoading(false)
+    try {
+      const { data: { session }, error } = await supabase.auth.getSession()
+      if (error) console.error('[Supabase] getSession:', error.message)
+
+      setUser(session?.user ?? null)
+
+      if (session?.user) {
+        const p = await loadUserProfile(session.user)
+        setProfile(p)
+      } else {
+        setProfile(null)
+      }
+    } catch (err) {
+      console.error('[Supabase] connection error:', formatAuthError(err))
+      setUser(null)
+      setProfile(null)
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
   useEffect(() => {
     loadSession()
+
+    if (!isSupabaseConfigured()) return undefined
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
@@ -94,38 +109,54 @@ export function AuthProvider({ children }) {
   }, [loadSession])
 
   const signUp = async ({ email, password, fullName, portalRole }) => {
+    if (!isSupabaseConfigured()) {
+      throw new Error('Supabase is not configured. Check .env.local and restart the dev server.')
+    }
+
     const role = resolvePortalRole(email, portalRole)
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: fullName,
-          portal_role: role,
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+            portal_role: role,
+          },
         },
-      },
-    })
-    if (error) throw error
-    return data
+      })
+      if (error) throw error
+      return data
+    } catch (err) {
+      throw new Error(formatAuthError(err))
+    }
   }
 
   const signIn = async ({ email, password }) => {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) throw error
-
-    let p = null
-    if (data.user) {
-      p = await loadUserProfile(data.user)
-      setProfile(p)
-      setUser(data.user)
+    if (!isSupabaseConfigured()) {
+      throw new Error('Supabase is not configured. Check .env.local and restart the dev server.')
     }
 
-    return { ...data, profile: p }
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+      if (error) throw error
+
+      let p = null
+      if (data.user) {
+        p = await loadUserProfile(data.user)
+        setProfile(p)
+        setUser(data.user)
+      }
+
+      return { ...data, profile: p }
+    } catch (err) {
+      throw new Error(formatAuthError(err))
+    }
   }
 
   const signOut = async () => {
     const { error } = await supabase.auth.signOut()
-    if (error) throw error
+    if (error) throw new Error(formatAuthError(error))
     setUser(null)
     setProfile(null)
   }

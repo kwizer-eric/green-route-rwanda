@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Wheat, Truck, ShoppingCart } from 'lucide-react'
 import AuthPageLayout, { AuthInput, AuthButton, AuthError, AuthSuccess } from '../components/AuthPageLayout'
 import { useAuth } from '../context/AuthContext'
+import { getSupabaseConfigError } from '../lib/supabase'
 import {
   PUBLIC_PORTAL_ROLES,
   PORTAL_LABELS,
@@ -21,6 +22,7 @@ export default function Signup() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const { signUp, user, profile } = useAuth()
+  const configError = getSupabaseConfigError()
 
   const portalParam = searchParams.get('portal')
   const initialPortal = isPublicPortalRole(portalParam) ? portalParam : 'farmer'
@@ -81,7 +83,7 @@ export default function Signup() {
       }
     >
       <form onSubmit={handleSubmit} className="space-y-5">
-        <AuthError message={error} />
+        <AuthError message={configError || error} />
         <AuthSuccess message={success} />
 
         <div className="space-y-2">
@@ -135,7 +137,7 @@ export default function Signup() {
           onChange={(e) => setPassword(e.target.value)}
         />
 
-        <AuthButton type="submit" disabled={submitting || !PUBLIC_PORTAL_ROLES.includes(portalRole)}>
+        <AuthButton type="submit" disabled={submitting || !!configError || !PUBLIC_PORTAL_ROLES.includes(portalRole)}>
           {submitting ? 'Creating account…' : `Create ${PORTAL_LABELS[submitLabelRole]} account`}
         </AuthButton>
       </form>
