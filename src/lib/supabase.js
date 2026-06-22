@@ -16,7 +16,7 @@ export function isSupabaseConfigured() {
 
 export function getSupabaseConfigError() {
   if (isSupabaseConfigured()) return null
-  return 'Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to .env.local, then restart the dev server.'
+  return 'Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your environment (Vercel → Settings → Environment Variables), then redeploy.'
 }
 
 if (!isSupabaseConfigured()) {

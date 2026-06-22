@@ -1,141 +1,97 @@
-const DISTRICT_PROXIMITY = {
-  Kigali: ['Rwamagana', 'Muhanga', 'Kayonza', 'Ngoma'],
-  Nyagatare: ['Gicumbi', 'Kayonza', 'Rwamagana'],
-  Musanze: ['Gicumbi', 'Rubavu', 'Nyagatare'],
-  Rwamagana: ['Kigali', 'Kayonza', 'Ngoma', 'Nyagatare'],
-  Huye: ['Muhanga', 'Karongi', 'Ngoma'],
-  Rubavu: ['Musanze', 'Karongi', 'Rusizi'],
-  Gicumbi: ['Musanze', 'Nyagatare', 'Kayonza'],
-  Karongi: ['Rubavu', 'Huye', 'Rusizi'],
-  Muhanga: ['Kigali', 'Huye', 'Ngoma'],
-  Ngoma: ['Rwamagana', 'Kayonza', 'Huye'],
-  Kayonza: ['Rwamagana', 'Nyagatare', 'Kigali'],
-  Rusizi: ['Rubavu', 'Karongi'],
+import { calculateTransportPrice } from './pricing'
+
+function shuffle(array) {
+  const arr = [...array]
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[arr[i], arr[j]] = [arr[j], arr[i]]
+  }
+  return arr
 }
 
-function buildMatchFactors(produce, transporter) {
-  const district = produce.district || produce.pickupDistrict || 'Kigali'
+export function pickRandomTransporter(transporterList) {
+  if (!transporterList?.length) return null
+  return transporterList[Math.floor(Math.random() * transporterList.length)]
+}
+
+export function transportQuote(produce, transporter = null) {
+  const pickup = produce.district || produce.pickupDistrict || 'Kigali'
   const delivery = produce.deliveryDistrict || 'Kigali'
-  const qty = produce.quantity || 0
-  const factors = []
-
-  if (transporter.routes?.includes(district)) {
-    factors.push({
-      label: 'Route overlap',
-      impact: '+25',
-      detail: `Already serves ${district} → ${delivery}`,
-    })
-  }
-
-  const nearby = DISTRICT_PROXIMITY[district] || []
-  const adjacent = transporter.routes?.find(r => nearby.includes(r))
-  if (adjacent && !transporter.routes?.includes(district)) {
-    factors.push({
-      label: 'Adjacent district',
-      impact: '+10',
-      detail: `${adjacent} is near pickup zone ${district}`,
-    })
-  }
-
-  if (transporter.capacity >= qty) {
-    factors.push({
-      label: 'Full capacity match',
-      impact: '+15',
-      detail: `${transporter.capacity.toLocaleString()} kg truck covers ${qty.toLocaleString()} kg load`,
-    })
-  } else if (transporter.capacity >= qty * 0.5) {
-    factors.push({
-      label: 'Partial capacity fit',
-      impact: '+5',
-      detail: `Vehicle can carry at least half the load`,
-    })
-  }
-
-  if (transporter.availability === 'Available' || transporter.availability === undefined) {
-    factors.push({
-      label: 'Available today',
-      impact: '+10',
-      detail: 'Vehicle marked available for pickup',
-    })
-  }
-
-  return factors
-}
-
-function scoreMatch(produce, transporter) {
-  let score = 60
-  const factors = buildMatchFactors(produce, transporter)
-  factors.forEach(f => {
-    score += parseInt(f.impact, 10)
+  const quantityKg = produce.quantity || 0
+  return calculateTransportPrice({
+    pickupDistrict: pickup,
+    deliveryDistrict: delivery,
+    quantityKg,
+    pricePerKm: transporter?.pricePerKm,
   })
-  return Math.min(score + Math.floor(Math.random() * 5), 98)
 }
 
 export function findBestTransporters(produce, transporterList, limit = 3) {
+  if (!transporterList?.length) return []
+
   const district = produce.district || produce.pickupDistrict || 'Kigali'
   const delivery = produce.deliveryDistrict || 'Kigali'
+  const quantityKg = produce.quantity || 0
 
-  return transporterList
+  return shuffle(transporterList)
+    .slice(0, Math.min(limit, transporterList.length))
     .map(t => {
-      const factors = buildMatchFactors(produce, t)
-      const confidence = factors.length
-        ? Math.min(60 + factors.reduce((s, f) => s + parseInt(f.impact, 10), 0), 98)
-        : scoreMatch(produce, t)
-
+      const { price, distanceKm } = calculateTransportPrice({
+        pickupDistrict: district,
+        deliveryDistrict: delivery,
+        quantityKg,
+        pricePerKm: t.pricePerKm,
+      })
       return {
         ...t,
-        confidence,
-        factors,
+        confidence: 75 + Math.floor(Math.random() * 20),
+        factors: [{
+          label: 'Transporter rate',
+          impact: '+20',
+          detail: `${t.pricePerKm} RWF/km × ${distanceKm} km`,
+        }],
         route: `${district} → ${delivery}`,
-        price: Math.floor(15000 + Math.random() * 70000),
+        price,
+        distanceKm,
       }
     })
-    .sort((a, b) => b.confidence - a.confidence)
-    .slice(0, limit)
 }
 
-export function explainMatch(produce, transporter) {
-  const factors = buildMatchFactors(produce, transporter)
-  const confidence = factors.length
-    ? Math.min(60 + factors.reduce((s, f) => s + parseInt(f.impact, 10), 0), 98)
-    : scoreMatch(produce, transporter)
-
-  return { factors, confidence }
+export function explainMatch(produce, transporter = null) {
+  const { price, distanceKm, pricePerKm } = transportQuote(produce || {}, transporter)
+  return {
+    factors: [{
+      label: 'Route-based quote',
+      impact: '+20',
+      detail: transporter
+        ? `${pricePerKm} RWF/km · ${distanceKm} km · ${price.toLocaleString()} RWF`
+        : `${distanceKm} km · ${price.toLocaleString()} RWF transport fee`,
+    }],
+    confidence: 80 + Math.floor(Math.random() * 15),
+    price,
+    distanceKm,
+  }
 }
 
-export function simulateAIProcessing(ms = 1500) {
+export function simulateAIProcessing(ms = 800) {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
-export function runAdminMatching(requests, available, transporterList) {
+export function runAdminMatching(requests, available, transporterList = []) {
   const pairs = []
-  const used = new Set()
+  if (!requests?.length || !available?.length) return pairs
 
-  requests.forEach((req, i) => {
-    const trans = available[i % available.length]
-    if (!used.has(trans.id)) {
-      const fullTransporter = transporterList.find(t => t.id === trans.id) || trans
-      const { factors, confidence } = explainMatch(req, fullTransporter)
-      pairs.push({
-        request: req,
-        transporter: trans,
-        confidence,
-        factors,
-        price: Math.floor(25000 + Math.random() * 50000),
-      })
-      used.add(trans.id)
-    }
+  requests.forEach(req => {
+    const trans = available[Math.floor(Math.random() * available.length)]
+    const full = transporterList.find(t => t.id === trans.id) || trans
+    const { factors, confidence, price } = explainMatch(req, full.pricePerKm != null ? full : null)
+    pairs.push({ request: req, transporter: trans, confidence, factors, price })
   })
 
   return pairs
 }
 
-/** Sample factors for landing page demo */
 export const SAMPLE_MATCH = {
   confidence: 92,
-  factors: [
-    { label: 'Route overlap', impact: '+25', detail: 'Serves Nyagatare → Kigali weekly' },
-    { label: 'Full capacity match', impact: '+15', detail: '5,000 kg truck for 2,000 kg maize' },
-    { label: 'Adjacent district', impact: '+10', detail: 'Rwamagana near Eastern pickup zone' },
-  ],
+  factors: [{ label: 'Transporter rate', impact: '+20', detail: 'Based on registered RWF/km' }],
 }

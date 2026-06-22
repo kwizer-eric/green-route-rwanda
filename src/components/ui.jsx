@@ -50,12 +50,40 @@ export function Button({ children, variant = 'primary', className = '', ...props
   )
 }
 
+const inputClass =
+  'w-full px-4 py-2.5 rounded-xl border border-stone-200 bg-white text-stone-900 text-sm placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all'
+
 export function Input({ label, ...props }) {
   return (
     <div className="space-y-1.5">
       {label && <label className="block text-sm font-medium text-stone-700">{label}</label>}
+      <input className={inputClass} {...props} />
+    </div>
+  )
+}
+
+/** Text-based numeric field — avoids browser number spinners changing values by ±1 */
+export function NumericInput({ label, value, onChange, allowDecimal = false, className = '', ...props }) {
+  const handleChange = (e) => {
+    const next = e.target.value
+    if (next === '') {
+      onChange('')
+      return
+    }
+    const valid = allowDecimal ? /^\d*\.?\d*$/.test(next) : /^\d+$/.test(next)
+    if (valid) onChange(next)
+  }
+
+  return (
+    <div className="space-y-1.5">
+      {label && <label className="block text-sm font-medium text-stone-700">{label}</label>}
       <input
-        className="w-full px-4 py-2.5 rounded-xl border border-stone-200 bg-white text-stone-900 text-sm placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+        type="text"
+        inputMode={allowDecimal ? 'decimal' : 'numeric'}
+        autoComplete="off"
+        value={value}
+        onChange={handleChange}
+        className={`${inputClass} ${className}`.trim()}
         {...props}
       />
     </div>

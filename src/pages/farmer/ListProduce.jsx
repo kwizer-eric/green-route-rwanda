@@ -1,23 +1,25 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { CheckCircle } from 'lucide-react'
-import { PageHeader, Button, Select, Input, Textarea, Card } from '../../components/ui'
+import { PageHeader, Button, Select, Input, NumericInput, Textarea, Card } from '../../components/ui'
 import AIProcessingOverlay from '../../components/AIProcessingOverlay'
-import { CROP_TYPES, DISTRICTS } from '../../data/mockData'
+import { CROP_TYPES, DISTRICTS, cropPricePerKg, formatRWF } from '../../data/mockData'
 import { simulateAIProcessing } from '../../utils/aiMatching'
 import { useApp } from '../../context/AppContext'
 
 export default function ListProduce() {
   const { addListing } = useApp()
-  const [form, setForm] = useState({ crop: '', quantity: '', district: '', date: '', notes: '' })
+  const [form, setForm] = useState({ crop: '', quantity: '', district: '', date: '', notes: '', pricePerKg: '' })
   const [processing, setProcessing] = useState(false)
   const [success, setSuccess] = useState(false)
+
+  const suggestedPrice = form.crop ? cropPricePerKg(form.crop) : null
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setProcessing(true)
-    await simulateAIProcessing(1800)
+    await simulateAIProcessing(800)
     try {
-      await addListing(form.crop, form.quantity, form.district, form.date, form.notes)
+      await addListing(form.crop, form.quantity, form.district, form.date, form.notes, form.pricePerKg)
       setSuccess(true)
     } catch (err) {
       alert(err.message || 'Failed to list produce')
@@ -26,7 +28,6 @@ export default function ListProduce() {
     }
   }
 
-
   if (success) {
     return (
       <div className="max-w-lg mx-auto text-center py-16 animate-fade-in">
@@ -34,8 +35,8 @@ export default function ListProduce() {
           <CheckCircle size={32} className="text-primary" />
         </div>
         <h2 className="text-xl font-semibold text-stone-900">Produce Listed Successfully</h2>
-        <p className="text-stone-500 mt-2">AI matching is finding the best transporters for your shipment.</p>
-        <Button className="mt-8" onClick={() => { setSuccess(false); setForm({ crop: '', quantity: '', district: '', date: '', notes: '' }) }}>
+        <p className="text-stone-500 mt-2">Your listing is live. If a transporter is registered, matching runs automatically.</p>
+        <Button className="mt-8" onClick={() => { setSuccess(false); setForm({ crop: '', quantity: '', district: '', date: '', notes: '', pricePerKg: '' }) }}>
           List Another
         </Button>
       </div>
@@ -45,14 +46,38 @@ export default function ListProduce() {
   return (
     <div>
       {processing && <AIProcessingOverlay message="AI Matching in progress..." />}
-      <PageHeader title="List Produce" description="Add your harvest to the marketplace for AI-powered transport matching." />
+      <PageHeader title="List Produce" description="Set your price and list harvest for coordinated transport." />
       <Card className="max-w-2xl p-6 sm:p-8">
         <form onSubmit={handleSubmit} className="space-y-5">
-          <Select label="Crop Type" required value={form.crop} onChange={e => setForm({ ...form, crop: e.target.value })}>
+          <Select
+            label="Crop Type"
+            required
+            value={form.crop}
+            onChange={e => {
+              const crop = e.target.value
+              setForm(prev => ({
+                ...prev,
+                crop,
+                pricePerKg: prev.pricePerKg || (crop ? String(cropPricePerKg(crop)) : ''),
+              }))
+            }}
+          >
             <option value="">Select crop</option>
             {CROP_TYPES.map(c => <option key={c} value={c}>{c}</option>)}
           </Select>
-          <Input label="Quantity (kg)" type="number" required placeholder="e.g. 1500" value={form.quantity} onChange={e => setForm({ ...form, quantity: e.target.value })} />
+          <NumericInput label="Quantity (kg)" required placeholder="e.g. 1500" value={form.quantity} onChange={v => setForm({ ...form, quantity: v })} />
+          <div className="space-y-1.5">
+            <NumericInput
+              label="Price per kg (RWF)"
+              required
+              placeholder={suggestedPrice ? String(suggestedPrice) : 'e.g. 450'}
+              value={form.pricePerKg}
+              onChange={v => setForm({ ...form, pricePerKg: v })}
+            />
+            {suggestedPrice && (
+              <p className="text-xs text-stone-400">Market reference for {form.crop}: {formatRWF(suggestedPrice)}/kg</p>
+            )}
+          </div>
           <Select label="Pickup Location" required value={form.district} onChange={e => setForm({ ...form, district: e.target.value })}>
             <option value="">Select district</option>
             {DISTRICTS.map(d => <option key={d} value={d}>{d}</option>)}

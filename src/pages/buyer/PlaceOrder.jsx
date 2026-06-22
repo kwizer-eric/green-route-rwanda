@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { CheckCircle } from 'lucide-react'
-import { PageHeader, Button, Input, Select, Card } from '../../components/ui'
+import { PageHeader, Button, Input, NumericInput, Select, Card } from '../../components/ui'
 import { formatRWF, DISTRICTS } from '../../data/mockData'
+import { calculateTransportPrice } from '../../utils/pricing'
 import { useApp } from '../../context/AppContext'
 
 export default function PlaceOrder() {
@@ -23,10 +24,23 @@ export default function PlaceOrder() {
     )
   }
 
-  const total = form.quantity ? Number(form.quantity) * produce.pricePerKg : 0
+  const qty = form.quantity ? Number(form.quantity) : 0
+  const produceTotal = qty * produce.pricePerKg
+  const transportEst = qty > 0
+    ? calculateTransportPrice({
+        pickupDistrict: produce.district,
+        deliveryDistrict: form.district,
+        quantityKg: qty,
+      })
+    : null
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    const qty = Number(form.quantity)
+    if (qty > produce.quantity) {
+      alert(`Maximum available is ${produce.quantity} kg`)
+      return
+    }
     setSubmitting(true)
     try {
       await placeOrder(produce.id, form.quantity, form.address, form.district, form.date, form.payment)
@@ -66,7 +80,7 @@ export default function PlaceOrder() {
           </div>
         </div>
         <form onSubmit={handleSubmit} className="space-y-5">
-          <Input label="Quantity (kg)" type="number" required max={produce.quantity} value={form.quantity} onChange={e => setForm({ ...form, quantity: e.target.value })} />
+          <NumericInput label="Quantity (kg)" required placeholder={`Max ${produce.quantity}`} value={form.quantity} onChange={v => setForm({ ...form, quantity: v })} />
           <Input label="Delivery Address" required placeholder="Street, district, city" value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} />
           <Select label="Delivery District" required value={form.district} onChange={e => setForm({ ...form, district: e.target.value })}>
             {DISTRICTS.map(d => <option key={d} value={d}>{d}</option>)}
@@ -76,10 +90,23 @@ export default function PlaceOrder() {
             <option value="Mobile Money">Mobile Money</option>
             <option value="Cash on Delivery">Cash on Delivery</option>
           </Select>
-          {total > 0 && (
-            <div className="flex justify-between items-center pt-4 border-t border-stone-100">
-              <span className="font-medium text-stone-700">Total</span>
-              <span className="text-xl font-semibold text-stone-900">{formatRWF(total)}</span>
+          {qty > 0 && (
+            <div className="pt-4 border-t border-stone-100 space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-stone-500">Produce subtotal</span>
+                <span className="font-medium text-stone-900">{formatRWF(produceTotal)}</span>
+              </div>
+              {transportEst && (
+                <div className="flex justify-between">
+                  <span className="text-stone-500">Est. transport ({transportEst.distanceKm} km)</span>
+                  <span className="font-medium text-stone-700">{formatRWF(transportEst.price)}</span>
+                </div>
+              )}
+              <div className="flex justify-between items-center pt-2">
+                <span className="font-medium text-stone-700">Produce total (due at order)</span>
+                <span className="text-xl font-semibold text-stone-900">{formatRWF(produceTotal)}</span>
+              </div>
+              <p className="text-xs text-stone-400">Transport is quoted separately and paid to the transporter on delivery.</p>
             </div>
           )}
           <Button type="submit" disabled={submitting}>{submitting ? 'Placing order…' : 'Confirm Order'}</Button>

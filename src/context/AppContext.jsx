@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react'
 import { explainMatch } from '../utils/aiMatching'
-import { cropPricePerKg } from '../data/mockData'
+import { calculateTransportPrice, resolveProducePricePerKg } from '../utils/pricing'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './AuthContext'
 
@@ -35,6 +35,7 @@ function mapTransporter(row, name) {
     lng: row.lng ?? 30.06,
     rating: Number(row.rating),
     availability: row.availability,
+    pricePerKm: Number(row.price_per_km ?? 120),
   }
 }
 
@@ -162,7 +163,11 @@ export function AppContextProvider({ children }) {
         mappedJobs.filter(j => j.transporterId).map(j => j.listingId)
       )
       const unmatched = mappedListings
-        .filter(l => l.status === 'Pending' && !matchedListingIds.has(l.id))
+        .filter(
+          l =>
+            !matchedListingIds.has(l.id) &&
+            !['Delivered', 'Completed', 'Matched', 'In Transit'].includes(l.status)
+        )
         .map(l => ({
           id: l.id,
           listingId: l.id,
@@ -199,13 +204,13 @@ export function AppContextProvider({ children }) {
     loadMarketplace()
   }, [loadMarketplace])
 
-  const addListing = async (crop, quantity, district, date, notes) => {
+  const addListing = async (crop, quantity, district, date, notes, pricePerKgInput) => {
     if (!user) throw new Error('Not signed in')
 
     const qty = Number(quantity)
-    const pricePerKg = cropPricePerKg(crop)
+    const pricePerKg = resolveProducePricePerKg(crop, pricePerKgInput)
 
-    const { error: insertError } = await supabase.from('listings').insert({
+    const { data: newListing, error: insertError } = await supabase.from('listings').insert({
       farmer_id: user.id,
       crop,
       quantity: qty,
@@ -215,15 +220,137 @@ export function AppContextProvider({ children }) {
       status: 'Pending',
       freshness: 'Excellent',
       notes: notes || '',
-    })
+    }).select().single()
     if (insertError) throw insertError
-    await loadMarketplace()
+
+    const matched = await tryAutoMatchListing(newListing.id, newListing)
+    if (!matched) await loadMarketplace()
   }
 
-  const registerVehicle = async (type, capacity, plate, routes, availability) => {
+  const listingHasTransport = async (listingId) => {
+    const { data: job } = await supabase
+      .from('transport_jobs')
+      .select('id, transporter_id')
+      .eq('listing_id', listingId)
+      .maybeSingle()
+    return Boolean(job?.transporter_id)
+  }
+
+  const listingHasOpenJob = async (listingId) => {
+    const { data: job } = await supabase
+      .from('transport_jobs')
+      .select('id')
+      .eq('listing_id', listingId)
+      .is('transporter_id', null)
+      .maybeSingle()
+    return Boolean(job)
+  }
+
+  const transportQuoteForListing = async (listingId, listingOverride = null, transporterId = null) => {
+    let listing = listingOverride
+    if (!listing) {
+      const { data } = await supabase.from('listings').select('*').eq('id', listingId).single()
+      if (!data) throw new Error('Listing not found')
+      listing = {
+        district: data.district,
+        quantity: Number(data.quantity),
+      }
+    }
+
+    const { data: orderRow } = await supabase
+      .from('orders')
+      .select('delivery_district')
+      .eq('listing_id', listingId)
+      .limit(1)
+      .maybeSingle()
+
+    let pricePerKm
+    if (transporterId) {
+      const { data: tp } = await supabase
+        .from('transporter_profiles')
+        .select('price_per_km')
+        .eq('id', transporterId)
+        .maybeSingle()
+      pricePerKm = tp?.price_per_km != null ? Number(tp.price_per_km) : undefined
+    }
+
+    return calculateTransportPrice({
+      pickupDistrict: listing.district,
+      deliveryDistrict: orderRow?.delivery_district || 'Kigali',
+      quantityKg: listing.quantity,
+      pricePerKm,
+    })
+  }
+
+  const createOpenTransportJob = async (listingId) => {
+    if (await listingHasTransport(listingId) || await listingHasOpenJob(listingId)) return
+
+    const { data } = await supabase.from('listings').select('*').eq('id', listingId).single()
+    if (!data) return
+
+    const { price, distanceKm } = await transportQuoteForListing(listingId, {
+      district: data.district,
+      quantity: Number(data.quantity),
+    })
+
+    const { data: orderRow } = await supabase
+      .from('orders')
+      .select('delivery_district')
+      .eq('listing_id', listingId)
+      .limit(1)
+      .maybeSingle()
+
+    const deliveryDistrict = orderRow?.delivery_district || 'Kigali'
+
+    await supabase.from('transport_jobs').insert({
+      listing_id: listingId,
+      crop: data.crop,
+      quantity: data.quantity,
+      pickup_district: data.district,
+      delivery_district: deliveryDistrict,
+      price,
+      distance: distanceKm,
+      transporter_id: null,
+      ai_optimized: true,
+    })
+  }
+
+  const tryAutoMatchListing = async (listingId, listingOverride = null, transporterId = null) => {
+    if (await listingHasTransport(listingId)) return false
+
+    let pickId = transporterId
+    if (!pickId) {
+      const { data: transporterRows } = await supabase.from('transporter_profiles').select('id')
+      if (!transporterRows?.length) {
+        await createOpenTransportJob(listingId)
+        return false
+      }
+      pickId = transporterRows[Math.floor(Math.random() * transporterRows.length)].id
+    }
+
+    const { data: openJob } = await supabase
+      .from('transport_jobs')
+      .select('id, price')
+      .eq('listing_id', listingId)
+      .is('transporter_id', null)
+      .maybeSingle()
+
+    if (openJob) {
+      await acceptJob(openJob.id, pickId)
+      return true
+    }
+
+    const { price } = await transportQuoteForListing(listingId, listingOverride, pickId)
+    await acceptMatch(listingId, pickId, price, listingOverride)
+    return true
+  }
+
+  const registerVehicle = async (type, capacity, plate, routes, availability, pricePerKm) => {
     if (!user) throw new Error('Not signed in')
 
     const cap = Number(capacity)
+    const perKm = Number(pricePerKm)
+    if (!perKm || perKm <= 0) throw new Error('Enter a valid price per kilometer')
     const primaryDistrict = routes[0] || 'Kigali'
     const coords = {
       Kigali: { lat: -1.94, lng: 30.06 },
@@ -242,10 +369,25 @@ export function AppContextProvider({ children }) {
       lng: coord.lng,
       rating: 5.0,
       availability: availability || null,
+      price_per_km: perKm,
       updated_at: new Date().toISOString(),
     })
     if (upsertError) throw upsertError
-    await loadMarketplace()
+
+    const { data: unassignedListings } = await supabase
+      .from('listings')
+      .select('id')
+      .in('status', ['Pending', 'Processing'])
+
+    for (const row of unassignedListings || []) {
+      if (!(await listingHasTransport(row.id))) {
+        await tryAutoMatchListing(row.id, null, user.id)
+      }
+    }
+
+    if (!unassignedListings?.length) {
+      await loadMarketplace()
+    }
   }
 
   const placeOrder = async (produceId, quantity, address, deliveryDistrict, date, payment) => {
@@ -278,13 +420,22 @@ export function AppContextProvider({ children }) {
       .eq('id', produceId)
     if (listingError) throw listingError
 
-    await loadMarketplace()
+    const matched = await tryAutoMatchListing(produceId)
+    if (!matched) await loadMarketplace()
   }
 
-  const acceptMatch = async (listingId, transporterId, price) => {
-    const listing = listings.find(l => l.id === listingId)
-    const transporterObj = transporters.find(t => t.id === transporterId)
-    if (!listing || !transporterObj) return
+  const acceptMatch = async (listingId, transporterId, price, listingOverride = null) => {
+    let listing = listingOverride || listings.find(l => l.id === listingId)
+    if (!listing) {
+      const { data } = await supabase.from('listings').select('*').eq('id', listingId).single()
+      if (!data) throw new Error('Listing not found')
+      listing = {
+        id: data.id,
+        crop: data.crop,
+        quantity: Number(data.quantity),
+        district: data.district,
+      }
+    }
 
     const { data: orderRow } = await supabase
       .from('orders')
@@ -293,6 +444,24 @@ export function AppContextProvider({ children }) {
       .limit(1)
       .maybeSingle()
     const deliveryDistrict = orderRow?.delivery_district || 'Kigali'
+
+    let transporterPerKm
+    if (transporterId) {
+      const { data: tp } = await supabase
+        .from('transporter_profiles')
+        .select('price_per_km')
+        .eq('id', transporterId)
+        .maybeSingle()
+      if (tp?.price_per_km != null) transporterPerKm = Number(tp.price_per_km)
+    }
+
+    const quote = calculateTransportPrice({
+      pickupDistrict: listing.district,
+      deliveryDistrict,
+      quantityKg: listing.quantity,
+      pricePerKm: transporterPerKm,
+    })
+    const finalPrice = price ?? quote.price
 
     const { error: listingError } = await supabase
       .from('listings')
@@ -308,8 +477,8 @@ export function AppContextProvider({ children }) {
         quantity: listing.quantity,
         pickup_district: listing.district,
         delivery_district: deliveryDistrict,
-        price,
-        distance: 80,
+        price: finalPrice,
+        distance: quote.distanceKm,
         transporter_id: transporterId,
         ai_optimized: true,
       })
@@ -326,7 +495,7 @@ export function AppContextProvider({ children }) {
       from_district: listing.district,
       to_district: deliveryDistrict,
       status: 'Active',
-      earnings: price,
+      earnings: finalPrice,
       trip_date: new Date().toISOString().split('T')[0],
     })
     if (tripError) throw tripError
@@ -335,12 +504,18 @@ export function AppContextProvider({ children }) {
   }
 
   const acceptJob = async (jobId, transporterId) => {
-    const job = jobs.find(j => j.id === jobId)
-    if (!job) return
+    let job = jobs.find(j => j.id === jobId)
+    if (!job) {
+      const { data } = await supabase.from('transport_jobs').select('*').eq('id', jobId).single()
+      if (!data) throw new Error('Job not found')
+      job = mapJob(data)
+    }
+
+    const { price, distanceKm } = await transportQuoteForListing(job.listingId, null, transporterId)
 
     const { error: jobError } = await supabase
       .from('transport_jobs')
-      .update({ transporter_id: transporterId })
+      .update({ transporter_id: transporterId, price, distance: distanceKm })
       .eq('id', jobId)
     if (jobError) throw jobError
 
@@ -359,7 +534,7 @@ export function AppContextProvider({ children }) {
       from_district: job.pickupDistrict,
       to_district: job.deliveryDistrict,
       status: 'Active',
-      earnings: job.price,
+      earnings: price,
       trip_date: new Date().toISOString().split('T')[0],
     })
     if (tripError) throw tripError
@@ -402,21 +577,15 @@ export function AppContextProvider({ children }) {
     if (unmatchedRequests.length === 0 || availableTransporters.length === 0) return []
 
     const pairs = []
-    const usedTransporterIds = new Set()
     const unmatchedCopy = [...unmatchedRequests]
     const availableCopy = [...availableTransporters]
 
-    for (let idx = 0; idx < unmatchedCopy.length; idx++) {
-      const req = unmatchedCopy[idx]
-      const trans = availableCopy[idx % availableCopy.length]
-      if (usedTransporterIds.has(trans.id)) continue
-
+    for (const req of unmatchedCopy) {
+      const trans = availableCopy[Math.floor(Math.random() * availableCopy.length)]
       const fullTransporter = transporters.find(t => t.id === trans.id) || trans
-      const { factors, confidence } = explainMatch(req, fullTransporter)
-      const price = Math.floor(25000 + Math.random() * 50000)
+      const { factors, confidence, price } = explainMatch(req, fullTransporter)
 
       pairs.push({ request: req, transporter: trans, confidence, factors, price })
-      usedTransporterIds.add(trans.id)
 
       const lId = req.listingId || req.id
       await acceptMatch(lId, trans.id, price)
