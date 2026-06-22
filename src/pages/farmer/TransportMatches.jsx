@@ -9,7 +9,7 @@ import { findBestTransporters } from '../../utils/aiMatching'
 import { formatRWF } from '../../data/mockData'
 
 export default function TransportMatches() {
-  const { listings, acceptMatch, transporters } = useApp()
+  const { listings, orders, acceptMatch, transporters } = useApp()
   const { entityId: farmerId } = usePortalIdentity()
   const [accepted, setAccepted] = useState(new Set())
 
@@ -30,9 +30,14 @@ export default function TransportMatches() {
     return map
   }, [pendingListings, transporters])
 
-  const handleAccept = (listingId, transporterId, price) => {
-    acceptMatch(listingId, transporterId, price)
+  const handleAccept = async (listingId, transporterId, price) => {
+    await acceptMatch(listingId, transporterId, price)
     setAccepted(prev => new Set(prev).add(`${listingId}-${transporterId}`))
+  }
+
+  const deliveryDistrictFor = (listingId) => {
+    const order = orders.find(o => o.produceId === listingId)
+    return order?.deliveryDistrict || 'Kigali'
   }
 
   return (
@@ -62,7 +67,7 @@ export default function TransportMatches() {
                 <h2 className="text-md font-semibold text-stone-800">
                   Matches for {listing.crop} ({listing.quantity.toLocaleString()} kg in {listing.district})
                 </h2>
-                <p className="text-xs text-stone-400 mt-0.5">Route: {listing.district} → Kigali</p>
+                <p className="text-xs text-stone-400 mt-0.5">Route: {listing.district} → {deliveryDistrictFor(listing.id)}</p>
               </div>
               <div className="grid gap-4">
                 {(matchesByListing[listing.id] || []).map((match, i) => {

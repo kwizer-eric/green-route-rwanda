@@ -32,7 +32,7 @@ export default function Navbar({ portalName, onMenuToggle, menuOpen }) {
             </button>
           )}
           <span className="font-semibold text-stone-900 tracking-tight text-sm sm:text-base shrink-0">
-            GreenRoute
+            GreenRoute Rwanda
           </span>
           {portalName && (
             <>

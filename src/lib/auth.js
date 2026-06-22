@@ -17,14 +17,6 @@ export const PORTAL_LABELS = {
   admin: 'Admin',
 }
 
-/** Demo entity IDs tied to mock data until profiles are linked to real records */
-export const ROLE_ENTITY_IDS = {
-  farmer: 'f1',
-  transporter: 't1',
-  buyer: 'b1',
-  admin: null,
-}
-
 export function portalPathForRole(role) {
   return PORTAL_PATHS[role] || '/'
 }

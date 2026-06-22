@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { CheckCircle } from 'lucide-react'
 import { PageHeader, Button, Input, Select, Card } from '../../components/ui'
-import { formatRWF } from '../../data/mockData'
+import { formatRWF, DISTRICTS } from '../../data/mockData'
 import { useApp } from '../../context/AppContext'
 
 export default function PlaceOrder() {
@@ -10,8 +10,9 @@ export default function PlaceOrder() {
   const { state } = useLocation()
   const navigate = useNavigate()
   const produce = state?.produce
-  const [form, setForm] = useState({ quantity: '', address: '', date: '', payment: 'Mobile Money' })
+  const [form, setForm] = useState({ quantity: '', address: '', district: 'Kigali', date: '', payment: 'Mobile Money' })
   const [success, setSuccess] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
 
   if (!produce) {
     return (
@@ -24,12 +25,18 @@ export default function PlaceOrder() {
 
   const total = form.quantity ? Number(form.quantity) * produce.pricePerKg : 0
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    placeOrder(produce.id, form.quantity, form.address, form.date, form.payment)
-    setSuccess(true)
+    setSubmitting(true)
+    try {
+      await placeOrder(produce.id, form.quantity, form.address, form.district, form.date, form.payment)
+      setSuccess(true)
+    } catch (err) {
+      alert(err.message || 'Failed to place order')
+    } finally {
+      setSubmitting(false)
+    }
   }
-
 
   if (success) {
     return (
@@ -61,6 +68,9 @@ export default function PlaceOrder() {
         <form onSubmit={handleSubmit} className="space-y-5">
           <Input label="Quantity (kg)" type="number" required max={produce.quantity} value={form.quantity} onChange={e => setForm({ ...form, quantity: e.target.value })} />
           <Input label="Delivery Address" required placeholder="Street, district, city" value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} />
+          <Select label="Delivery District" required value={form.district} onChange={e => setForm({ ...form, district: e.target.value })}>
+            {DISTRICTS.map(d => <option key={d} value={d}>{d}</option>)}
+          </Select>
           <Input label="Preferred Delivery Date" type="date" required value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} />
           <Select label="Payment Method" value={form.payment} onChange={e => setForm({ ...form, payment: e.target.value })}>
             <option value="Mobile Money">Mobile Money</option>
@@ -72,7 +82,7 @@ export default function PlaceOrder() {
               <span className="text-xl font-semibold text-stone-900">{formatRWF(total)}</span>
             </div>
           )}
-          <Button type="submit">Confirm Order</Button>
+          <Button type="submit" disabled={submitting}>{submitting ? 'Placing order…' : 'Confirm Order'}</Button>
         </form>
       </Card>
     </div>

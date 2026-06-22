@@ -13,8 +13,8 @@ export default function AvailableJobs() {
 
   const availableJobs = jobs.filter(j => !j.transporterId)
 
-  const handleAccept = (jobId) => {
-    acceptJob(jobId, transporterId)
+  const handleAccept = async (jobId) => {
+    await acceptJob(jobId, transporterId)
     setAccepted(prev => new Set([...prev, jobId]))
   }
 
@@ -25,6 +25,9 @@ export default function AvailableJobs() {
         description="Accept coordinated loads on routes you serve — fill the truck instead of returning empty."
       />
       <div className="grid gap-4">
+        {availableJobs.length === 0 && (
+          <p className="text-sm text-stone-400 text-center py-12">No open jobs right now. New loads appear when farmers match transport.</p>
+        )}
         {availableJobs.map(job => (
 
           <Card key={job.id} className="p-6">

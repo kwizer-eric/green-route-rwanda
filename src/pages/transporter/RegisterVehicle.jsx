@@ -16,10 +16,14 @@ export default function RegisterVehicle() {
     }))
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    registerVehicle(form.type, form.capacity, form.plate, form.routes, form.availability)
-    setSuccess(true)
+    try {
+      await registerVehicle(form.type, form.capacity, form.plate, form.routes, form.availability)
+      setSuccess(true)
+    } catch (err) {
+      alert(err.message || 'Failed to register vehicle')
+    }
   }
 
 

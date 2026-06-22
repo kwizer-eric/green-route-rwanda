@@ -1,278 +1,426 @@
-import { createContext, useContext, useState } from 'react'
+import { createContext, useContext, useState, useCallback, useEffect } from 'react'
 import { explainMatch } from '../utils/aiMatching'
-import {
-  produceListings as initialListings,
-  transporters as initialTransporters,
-  orders as initialOrders,
-  trips as initialTrips,
-  transportJobs as initialJobs,
-  unmatchedRequests as initialUnmatchedRequests,
-  availableTransporters as initialAvailableTransporters,
-} from '../data/mockData'
+import { cropPricePerKg } from '../data/mockData'
+import { supabase } from '../lib/supabase'
+import { useAuth } from './AuthContext'
 
 const AppContext = createContext()
 
+function mapListing(row, farmerName) {
+  return {
+    id: row.id,
+    farmerId: row.farmer_id,
+    farmerName: farmerName || '',
+    crop: row.crop,
+    quantity: Number(row.quantity),
+    district: row.district,
+    pricePerKg: Number(row.price_per_kg),
+    availableDate: row.available_date,
+    status: row.status,
+    freshness: row.freshness,
+    notes: row.notes || '',
+    createdAt: row.created_at,
+  }
+}
+
+function mapTransporter(row, name) {
+  return {
+    id: row.id,
+    name: name || '',
+    vehicleType: row.vehicle_type,
+    capacity: Number(row.capacity),
+    licensePlate: row.license_plate,
+    routes: row.routes || [],
+    lat: row.lat ?? -1.94,
+    lng: row.lng ?? 30.06,
+    rating: Number(row.rating),
+    availability: row.availability,
+  }
+}
+
+function mapOrder(row, listing, farmerName) {
+  return {
+    id: row.id,
+    buyerId: row.buyer_id,
+    produceId: row.listing_id,
+    crop: listing?.crop || '',
+    farmerName: farmerName || '',
+    quantity: Number(row.quantity),
+    district: listing?.district || '',
+    pricePerKg: listing ? Number(listing.price_per_kg) : 0,
+    total: Number(row.total),
+    status: row.status,
+    deliveryAddress: row.delivery_address,
+    deliveryDistrict: row.delivery_district,
+    deliveryDate: row.delivery_date,
+    payment: row.payment,
+    createdAt: row.created_at,
+  }
+}
+
+function mapJob(row) {
+  return {
+    id: row.id,
+    listingId: row.listing_id,
+    crop: row.crop,
+    quantity: Number(row.quantity),
+    pickupDistrict: row.pickup_district,
+    deliveryDistrict: row.delivery_district,
+    price: Number(row.price),
+    distance: row.distance ? Number(row.distance) : null,
+    transporterId: row.transporter_id,
+    aiOptimized: row.ai_optimized,
+    createdAt: row.created_at,
+  }
+}
+
+function mapTrip(row) {
+  return {
+    id: row.id,
+    transporterId: row.transporter_id,
+    listingId: row.listing_id,
+    jobId: row.job_id,
+    crop: row.crop,
+    quantity: Number(row.quantity),
+    from: row.from_district,
+    to: row.to_district,
+    status: row.status,
+    earnings: Number(row.earnings),
+    date: row.trip_date,
+    createdAt: row.created_at,
+  }
+}
+
 export function AppContextProvider({ children }) {
-  const [listings, setListings] = useState(initialListings)
-  const [transporters, setTransporters] = useState(initialTransporters)
-  const [orders, setOrders] = useState(initialOrders)
-  const [trips, setTrips] = useState(initialTrips)
-  const [jobs, setJobs] = useState(initialJobs)
-  const [unmatchedRequests, setUnmatchedRequests] = useState(initialUnmatchedRequests)
-  const [availableTransporters, setAvailableTransporters] = useState(initialAvailableTransporters)
+  const { user } = useAuth()
+  const [listings, setListings] = useState([])
+  const [transporters, setTransporters] = useState([])
+  const [orders, setOrders] = useState([])
+  const [trips, setTrips] = useState([])
+  const [jobs, setJobs] = useState([])
+  const [unmatchedRequests, setUnmatchedRequests] = useState([])
+  const [availableTransporters, setAvailableTransporters] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
-  // 1. Farmer Lists Produce
-  const addListing = (crop, quantity, district, date, notes) => {
-    const newId = `pl${listings.length + 1}`
+  const loadMarketplace = useCallback(async () => {
+    if (!user) {
+      setListings([])
+      setTransporters([])
+      setOrders([])
+      setTrips([])
+      setJobs([])
+      setUnmatchedRequests([])
+      setAvailableTransporters([])
+      setLoading(false)
+      return
+    }
+
+    setLoading(true)
+    setError(null)
+
+    try {
+      const [
+        listingsRes,
+        profilesRes,
+        transporterProfilesRes,
+        ordersRes,
+        jobsRes,
+        tripsRes,
+      ] = await Promise.all([
+        supabase.from('listings').select('*').order('created_at', { ascending: false }),
+        supabase.from('profiles').select('id, full_name'),
+        supabase.from('transporter_profiles').select('*'),
+        supabase.from('orders').select('*').order('created_at', { ascending: false }),
+        supabase.from('transport_jobs').select('*').order('created_at', { ascending: false }),
+        supabase.from('trips').select('*').order('created_at', { ascending: false }),
+      ])
+
+      const firstError = [listingsRes, profilesRes, transporterProfilesRes, ordersRes, jobsRes, tripsRes]
+        .find(r => r.error)?.error
+      if (firstError) throw firstError
+
+      const nameById = Object.fromEntries(
+        (profilesRes.data || []).map(p => [p.id, p.full_name])
+      )
+      const listingById = Object.fromEntries((listingsRes.data || []).map(l => [l.id, l]))
+
+      const mappedListings = (listingsRes.data || []).map(l =>
+        mapListing(l, nameById[l.farmer_id])
+      )
+      const mappedTransporters = (transporterProfilesRes.data || []).map(t =>
+        mapTransporter(t, nameById[t.id])
+      )
+      const mappedJobs = (jobsRes.data || []).map(mapJob)
+      const mappedTrips = (tripsRes.data || []).map(mapTrip)
+      const mappedOrders = (ordersRes.data || []).map(o => {
+        const listing = listingById[o.listing_id]
+        return mapOrder(o, listing, listing ? nameById[listing.farmer_id] : '')
+      })
+
+      const matchedListingIds = new Set(
+        mappedJobs.filter(j => j.transporterId).map(j => j.listingId)
+      )
+      const unmatched = mappedListings
+        .filter(l => l.status === 'Pending' && !matchedListingIds.has(l.id))
+        .map(l => ({
+          id: l.id,
+          listingId: l.id,
+          farmer: l.farmerName,
+          crop: l.crop,
+          quantity: l.quantity,
+          district: l.district,
+        }))
+
+      const avail = mappedTransporters.map(t => ({
+        id: t.id,
+        name: t.name,
+        vehicle: t.vehicleType,
+        capacity: t.capacity,
+        district: t.routes[0] || 'Kigali',
+      }))
+
+      setListings(mappedListings)
+      setTransporters(mappedTransporters)
+      setOrders(mappedOrders)
+      setTrips(mappedTrips)
+      setJobs(mappedJobs)
+      setUnmatchedRequests(unmatched)
+      setAvailableTransporters(avail)
+    } catch (err) {
+      console.error('[AppContext] loadMarketplace:', err)
+      setError(err.message || 'Failed to load marketplace data')
+    } finally {
+      setLoading(false)
+    }
+  }, [user])
+
+  useEffect(() => {
+    loadMarketplace()
+  }, [loadMarketplace])
+
+  const addListing = async (crop, quantity, district, date, notes) => {
+    if (!user) throw new Error('Not signed in')
+
     const qty = Number(quantity)
-    const pricePerKg = crop === 'Coffee' ? 1200 : crop === 'Potatoes' ? 380 : crop === 'Beans' ? 720 : 450
+    const pricePerKg = cropPricePerKg(crop)
 
-    const newListing = {
-      id: newId,
-      farmerId: 'f1', // Uwimana Jean (default user in portal)
-      farmerName: 'Uwimana Jean',
+    const { error: insertError } = await supabase.from('listings').insert({
+      farmer_id: user.id,
       crop,
       quantity: qty,
       district,
-      pricePerKg,
-      availableDate: date,
+      price_per_kg: pricePerKg,
+      available_date: date || null,
       status: 'Pending',
       freshness: 'Excellent',
-      notes,
-    }
-
-    setListings(prev => [newListing, ...prev])
-
-    // Also add to unmatched requests
-    const newUnmatched = {
-      id: `ur${unmatchedRequests.length + 1}`,
-      farmer: 'Uwimana Jean',
-      crop,
-      quantity: qty,
-      district,
-      listingId: newId,
-    }
-    setUnmatchedRequests(prev => [newUnmatched, ...prev])
+      notes: notes || '',
+    })
+    if (insertError) throw insertError
+    await loadMarketplace()
   }
 
-  // 2. Transporter Registers Vehicle
-  const registerVehicle = (type, capacity, plate, routes, availability) => {
-    const newTransporterId = `t${transporters.length + 1}`
+  const registerVehicle = async (type, capacity, plate, routes, availability) => {
+    if (!user) throw new Error('Not signed in')
+
     const cap = Number(capacity)
+    const primaryDistrict = routes[0] || 'Kigali'
+    const coords = {
+      Kigali: { lat: -1.94, lng: 30.06 },
+      Nyagatare: { lat: -1.32, lng: 30.28 },
+      Musanze: { lat: -1.51, lng: 29.61 },
+    }
+    const coord = coords[primaryDistrict] || coords.Kigali
 
-    const newTransporter = {
-      id: newTransporterId,
-      name: 'Kamanzi Transport Ltd', // Default login transporter
-      vehicleType: type,
+    const { error: upsertError } = await supabase.from('transporter_profiles').upsert({
+      id: user.id,
+      vehicle_type: type,
       capacity: cap,
-      licensePlate: plate,
+      license_plate: plate,
       routes,
-      lat: -1.94,
-      lng: 30.06,
+      lat: coord.lat,
+      lng: coord.lng,
       rating: 5.0,
-      availability,
-    }
-    setTransporters(prev => [...prev, newTransporter])
-
-    const newAvail = {
-      id: newTransporterId,
-      name: 'Kamanzi Transport Ltd',
-      vehicle: type,
-      capacity: cap,
-      district: routes[0] || 'Kigali',
-    }
-    setAvailableTransporters(prev => [...prev, newAvail])
+      availability: availability || null,
+      updated_at: new Date().toISOString(),
+    })
+    if (upsertError) throw upsertError
+    await loadMarketplace()
   }
 
-  // 3. Buyer Places Order
-  const placeOrder = (produceId, quantity, address, date, payment) => {
+  const placeOrder = async (produceId, quantity, address, deliveryDistrict, date, payment) => {
+    if (!user) throw new Error('Not signed in')
+
     const listing = listings.find(l => l.id === produceId)
-    if (!listing) return
+    if (!listing) throw new Error('Listing not found')
 
     const qty = Number(quantity)
-    const newId = `o${orders.length + 1}`
     const total = qty * listing.pricePerKg
+    const updatedQty = Math.max(0, listing.quantity - qty)
+    const listingStatus = updatedQty === 0 ? 'Processing' : listing.status
 
-    // Decrement listing quantity
-    setListings(prev =>
-      prev.map(l => {
-        if (l.id === produceId) {
-          const updatedQty = Math.max(0, l.quantity - qty)
-          return {
-            ...l,
-            quantity: updatedQty,
-            status: updatedQty === 0 ? 'Processing' : l.status,
-          }
-        }
-        return l
-      })
-    )
-
-    const newOrder = {
-      id: newId,
-      buyerId: 'b1',
-      produceId,
-      crop: listing.crop,
-      farmerName: listing.farmerName,
+    const { error: orderError } = await supabase.from('orders').insert({
+      buyer_id: user.id,
+      listing_id: produceId,
       quantity: qty,
-      district: listing.district,
-      pricePerKg: listing.pricePerKg,
       total,
       status: 'Processing',
-      deliveryAddress: address,
-      deliveryDate: date,
+      delivery_address: address,
+      delivery_district: deliveryDistrict,
+      delivery_date: date || null,
       payment,
-    }
-    setOrders(prev => [newOrder, ...prev])
+    })
+    if (orderError) throw orderError
+
+    const { error: listingError } = await supabase
+      .from('listings')
+      .update({ quantity: updatedQty, status: listingStatus })
+      .eq('id', produceId)
+    if (listingError) throw listingError
+
+    await loadMarketplace()
   }
 
-  // 4. Accept a Match (by Farmer or auto-matched)
-  const acceptMatch = (listingId, transporterId, price) => {
-    // Update Listing status
-    setListings(prev =>
-      prev.map(l => (l.id === listingId ? { ...l, status: 'Matched' } : l))
-    )
-
+  const acceptMatch = async (listingId, transporterId, price) => {
     const listing = listings.find(l => l.id === listingId)
     const transporterObj = transporters.find(t => t.id === transporterId)
-
     if (!listing || !transporterObj) return
 
-    // Create a Transport Job
-    const jobId = `tj${jobs.length + 1}`
-    const newJob = {
-      id: jobId,
-      listingId,
-      crop: listing.crop,
-      quantity: listing.quantity,
-      pickupDistrict: listing.district,
-      deliveryDistrict: 'Kigali',
-      price,
-      distance: 80,
-      transporterId,
-      aiOptimized: true,
-    }
-    setJobs(prev => [newJob, ...prev])
+    const { data: orderRow } = await supabase
+      .from('orders')
+      .select('delivery_district')
+      .eq('listing_id', listingId)
+      .limit(1)
+      .maybeSingle()
+    const deliveryDistrict = orderRow?.delivery_district || 'Kigali'
 
-    // Create a Trip
-    const tripId = `tr${trips.length + 1}`
-    const newTrip = {
-      id: tripId,
-      transporterId,
-      listingId,
+    const { error: listingError } = await supabase
+      .from('listings')
+      .update({ status: 'Matched' })
+      .eq('id', listingId)
+    if (listingError) throw listingError
+
+    const { data: job, error: jobError } = await supabase
+      .from('transport_jobs')
+      .insert({
+        listing_id: listingId,
+        crop: listing.crop,
+        quantity: listing.quantity,
+        pickup_district: listing.district,
+        delivery_district: deliveryDistrict,
+        price,
+        distance: 80,
+        transporter_id: transporterId,
+        ai_optimized: true,
+      })
+      .select()
+      .single()
+    if (jobError) throw jobError
+
+    const { error: tripError } = await supabase.from('trips').insert({
+      transporter_id: transporterId,
+      listing_id: listingId,
+      job_id: job.id,
       crop: listing.crop,
       quantity: listing.quantity,
-      from: listing.district,
-      to: 'Kigali',
+      from_district: listing.district,
+      to_district: deliveryDistrict,
       status: 'Active',
       earnings: price,
-      date: new Date().toISOString().split('T')[0],
-    }
-    setTrips(prev => [newTrip, ...prev])
+      trip_date: new Date().toISOString().split('T')[0],
+    })
+    if (tripError) throw tripError
 
-    // Remove from unmatched
-    setUnmatchedRequests(prev => prev.filter(ur => ur.listingId !== listingId && ur.farmer !== listing.farmerName))
+    await loadMarketplace()
   }
 
-  // 5. Accept Job (by Transporter)
-  const acceptJob = (jobId, transporterId) => {
+  const acceptJob = async (jobId, transporterId) => {
     const job = jobs.find(j => j.id === jobId)
     if (!job) return
 
-    setJobs(prev =>
-      prev.map(j => (j.id === jobId ? { ...j, transporterId } : j))
-    )
+    const { error: jobError } = await supabase
+      .from('transport_jobs')
+      .update({ transporter_id: transporterId })
+      .eq('id', jobId)
+    if (jobError) throw jobError
 
-    setListings(prev =>
-      prev.map(l => (l.id === job.listingId ? { ...l, status: 'Matched' } : l))
-    )
+    const { error: listingError } = await supabase
+      .from('listings')
+      .update({ status: 'Matched' })
+      .eq('id', job.listingId)
+    if (listingError) throw listingError
 
-    const tripId = `tr${trips.length + 1}`
-    const newTrip = {
-      id: tripId,
-      transporterId,
-      listingId: job.listingId,
+    const { error: tripError } = await supabase.from('trips').insert({
+      transporter_id: transporterId,
+      listing_id: job.listingId,
+      job_id: jobId,
       crop: job.crop,
       quantity: job.quantity,
-      from: job.pickupDistrict,
-      to: job.deliveryDistrict,
+      from_district: job.pickupDistrict,
+      to_district: job.deliveryDistrict,
       status: 'Active',
       earnings: job.price,
-      date: new Date().toISOString().split('T')[0],
-    }
-    setTrips(prev => [newTrip, ...prev])
+      trip_date: new Date().toISOString().split('T')[0],
+    })
+    if (tripError) throw tripError
+
+    await loadMarketplace()
   }
 
-  // 6. Update Trip Status (Active -> In Transit -> Completed)
-  const updateTripStatus = (tripId, nextStatus) => {
-    setTrips(prev =>
-      prev.map(t => (t.id === tripId ? { ...t, status: nextStatus } : t))
-    )
-
+  const updateTripStatus = async (tripId, nextStatus) => {
     const trip = trips.find(t => t.id === tripId)
     if (!trip) return
 
-    const mappingStatus = nextStatus === 'In Transit' ? 'In Transit' : nextStatus === 'Completed' ? 'Delivered' : nextStatus
+    const { error: tripError } = await supabase
+      .from('trips')
+      .update({ status: nextStatus })
+      .eq('id', tripId)
+    if (tripError) throw tripError
 
-    // Update Listing status
+    const mappingStatus =
+      nextStatus === 'In Transit' ? 'In Transit' :
+      nextStatus === 'Completed' ? 'Delivered' : nextStatus
+
     if (trip.listingId) {
-      setListings(prev =>
-        prev.map(l => (l.id === trip.listingId ? { ...l, status: mappingStatus } : l))
-      )
+      const { error: listingError } = await supabase
+        .from('listings')
+        .update({ status: mappingStatus })
+        .eq('id', trip.listingId)
+      if (listingError) throw listingError
 
-      // Also update matching orders
-      setOrders(prev =>
-        prev.map(o => (o.produceId === trip.listingId ? { ...o, status: mappingStatus } : o))
-      )
-    } else {
-      // Fallback matching by crop, from, to
-      setListings(prev =>
-        prev.map(l =>
-          l.crop === trip.crop && l.district === trip.from && l.status !== 'Delivered'
-            ? { ...l, status: mappingStatus }
-            : l
-        )
-      )
-      setOrders(prev =>
-        prev.map(o =>
-          o.crop === trip.crop && o.district === trip.from && o.status !== 'Delivered'
-            ? { ...o, status: mappingStatus }
-            : o
-        )
-      )
+      const { error: orderError } = await supabase
+        .from('orders')
+        .update({ status: mappingStatus })
+        .eq('listing_id', trip.listingId)
+      if (orderError) throw orderError
     }
+
+    await loadMarketplace()
   }
 
-  // 7. Auto Run Matchmaker from Admin
-  const runAdminAutoMatching = () => {
+  const runAdminAutoMatching = async () => {
     if (unmatchedRequests.length === 0 || availableTransporters.length === 0) return []
 
     const pairs = []
     const usedTransporterIds = new Set()
-    
     const unmatchedCopy = [...unmatchedRequests]
     const availableCopy = [...availableTransporters]
 
-    unmatchedCopy.forEach((req, idx) => {
+    for (let idx = 0; idx < unmatchedCopy.length; idx++) {
+      const req = unmatchedCopy[idx]
       const trans = availableCopy[idx % availableCopy.length]
-      if (!usedTransporterIds.has(trans.id)) {
-        const fullTransporter = transporters.find(t => t.id === trans.id) || trans
-        const { factors, confidence } = explainMatch(req, fullTransporter)
-        const price = Math.floor(25000 + Math.random() * 50000)
+      if (usedTransporterIds.has(trans.id)) continue
 
-        pairs.push({
-          request: req,
-          transporter: trans,
-          confidence,
-          factors,
-          price,
-        })
-        usedTransporterIds.add(trans.id)
+      const fullTransporter = transporters.find(t => t.id === trans.id) || trans
+      const { factors, confidence } = explainMatch(req, fullTransporter)
+      const price = Math.floor(25000 + Math.random() * 50000)
 
-        const lId = req.listingId || `pl${idx + 1}`
-        acceptMatch(lId, trans.id, price)
-      }
-    })
+      pairs.push({ request: req, transporter: trans, confidence, factors, price })
+      usedTransporterIds.add(trans.id)
+
+      const lId = req.listingId || req.id
+      await acceptMatch(lId, trans.id, price)
+    }
 
     return pairs
   }
@@ -287,6 +435,9 @@ export function AppContextProvider({ children }) {
         jobs,
         unmatchedRequests,
         availableTransporters,
+        loading,
+        error,
+        refresh: loadMarketplace,
         addListing,
         registerVehicle,
         placeOrder,

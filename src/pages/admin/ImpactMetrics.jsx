@@ -5,20 +5,16 @@ import { useApp } from '../../context/AppContext'
 const icons = { trending: TrendingUp, users: Users, leaf: Leaf, truck: Truck }
 
 export default function ImpactMetrics() {
-  const { listings } = useApp()
+  const { listings, trips } = useApp()
 
-  const deliveredCount = listings.filter(l => l.status === 'Delivered' || l.status === 'Completed').length
-
-  const lossReduction = 23.4 + (deliveredCount * 0.1)
-  const incomeIncrease = 18.7 + (deliveredCount * 0.08)
-  const co2Saved = 1240 + (deliveredCount * 1.5)
-  const emptyTrips = 31.2 + (deliveredCount * 0.12)
+  const deliveredCount = listings.filter(l => ['Delivered', 'Completed'].includes(l.status)).length
+  const completedTrips = trips.filter(t => t.status === 'Completed').length
 
   const dynamicImpactMetrics = [
-    { label: 'Post-Harvest Loss Reduction', value: `${lossReduction.toFixed(1)}%`, change: '+4.2%', icon: 'trending' },
-    { label: 'Farmer Income Increase', value: `${incomeIncrease.toFixed(1)}%`, change: '+2.8%', icon: 'users' },
-    { label: 'CO₂ Saved', value: `${co2Saved.toLocaleString()} tons`, change: '+156 tons', icon: 'leaf' },
-    { label: 'Empty Trips Reduced', value: `${emptyTrips.toFixed(1)}%`, change: '+5.1%', icon: 'truck' },
+    { label: 'Deliveries Completed', value: deliveredCount.toString(), change: deliveredCount > 0 ? 'Active on platform' : 'No deliveries yet', icon: 'trending' },
+    { label: 'Trips Completed', value: completedTrips.toString(), change: completedTrips > 0 ? 'Transport coordinated' : 'Awaiting first trip', icon: 'truck' },
+    { label: 'Listings Fulfilled', value: `${deliveredCount > 0 ? Math.round((deliveredCount / Math.max(listings.length, 1)) * 100) : 0}%`, change: 'Of total listings', icon: 'users' },
+    { label: 'CO₂ Estimate Saved', value: `${Math.round(completedTrips * 12)} kg`, change: 'Based on trip count', icon: 'leaf' },
   ]
 
   return (
@@ -27,10 +23,8 @@ export default function ImpactMetrics() {
         title="Impact Metrics"
         description="Measuring how coordinated logistics reduces waste, emissions, and empty trips."
       />
-      <p className="text-xs text-stone-400 mb-4 -mt-6">Demo metrics — illustrative values that update as you complete deliveries in the walkthrough.</p>
       <div className="grid sm:grid-cols-2 gap-4">
         {dynamicImpactMetrics.map(m => {
-
           const Icon = icons[m.icon]
           return (
             <Card key={m.label} className="p-6">
@@ -50,10 +44,9 @@ export default function ImpactMetrics() {
       </div>
       <Card className="mt-6 p-8 text-center">
         <p className="text-stone-500 text-sm max-w-lg mx-auto leading-relaxed">
-          Coordinated logistics across pilot districts reduces post-harvest losses, empty return trips,
-          and carbon emissions — strengthening rural-urban market connections across Rwanda.
+          Coordinated logistics across Rwanda reduces post-harvest losses, empty return trips,
+          and carbon emissions — strengthening rural-urban market connections.
         </p>
-        <p className="text-xs text-stone-400 mt-3">Projected impact narrative for concept demo.</p>
       </Card>
     </div>
   )

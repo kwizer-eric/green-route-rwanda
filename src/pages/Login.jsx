@@ -56,7 +56,7 @@ export default function Login() {
       subtitle={
         portalHint
           ? `Sign in to access the ${portalHint} portal`
-          : 'Sign in to your GreenRoute account'
+          : 'Sign in to your GreenRoute Rwanda account'
       }
       footer={
         <>

@@ -16,9 +16,14 @@ export default function ListProduce() {
     e.preventDefault()
     setProcessing(true)
     await simulateAIProcessing(1800)
-    addListing(form.crop, form.quantity, form.district, form.date, form.notes)
-    setProcessing(false)
-    setSuccess(true)
+    try {
+      await addListing(form.crop, form.quantity, form.district, form.date, form.notes)
+      setSuccess(true)
+    } catch (err) {
+      alert(err.message || 'Failed to list produce')
+    } finally {
+      setProcessing(false)
+    }
   }
 
 

@@ -29,7 +29,7 @@ export default function BrowseProduce() {
       if (maxPrice && p.pricePerKg > Number(maxPrice)) return false
       return p.status !== 'Delivered'
     })
-  }, [crop, district, maxPrice])
+  }, [crop, district, maxPrice, listings])
 
   return (
     <div>
@@ -51,6 +51,9 @@ export default function BrowseProduce() {
         </Select>
       </div>
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {filtered.length === 0 && (
+          <p className="text-sm text-stone-400 col-span-full text-center py-12">No produce available yet. Check back when farmers list their harvest.</p>
+        )}
         {filtered.map(p => (
           <Card key={p.id} className="p-5 flex flex-col">
             <div className="flex items-start justify-between mb-3">
@@ -62,7 +65,7 @@ export default function BrowseProduce() {
             </div>
             <div className="space-y-1 text-sm text-stone-600 mb-4 flex-1">
               <p>{p.quantity.toLocaleString()} kg available</p>
-              <p>{p.district} District</p>
+              <p>{p.district}</p>
               <p className="text-lg font-semibold text-stone-900 pt-1">{formatRWF(p.pricePerKg)}/kg</p>
             </div>
             <Button

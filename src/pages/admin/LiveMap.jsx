@@ -62,7 +62,7 @@ export default function LiveMap() {
 
   return (
     <div>
-      <PageHeader title="Live Map" description="Real-time view of farmers, transporters, and active routes." />
+      <PageHeader title="Live Map" description="District-based view of farmers, transporters, and active routes." />
       <div className="bg-white rounded-2xl border border-stone-100 overflow-hidden relative">
         <div className="absolute top-4 right-4 z-[1000] bg-white/90 backdrop-blur-sm rounded-xl px-4 py-3 text-xs space-y-1.5 shadow-sm border border-stone-100">
           <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-primary" /> Farmers (Active listings)</div>

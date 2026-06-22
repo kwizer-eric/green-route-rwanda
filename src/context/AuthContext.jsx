@@ -3,7 +3,6 @@ import { supabase, isSupabaseConfigured, supabaseUrl, supabaseAnonKey } from '..
 import { formatAuthError } from '../lib/formatAuthError'
 import {
   portalPathForRole,
-  ROLE_ENTITY_IDS,
   resolvePortalRole,
   isAdminEmail,
 } from '../lib/auth'
@@ -256,7 +255,7 @@ export function usePortalIdentity() {
   const role = profile?.portal_role
   return {
     role,
-    entityId: role ? ROLE_ENTITY_IDS[role] : null,
+    entityId: profile?.id ?? null,
     fullName: profile?.full_name || '',
     portalPath: role ? portalPathForRole(role) : '/',
   }

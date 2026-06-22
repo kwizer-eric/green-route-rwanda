@@ -192,14 +192,9 @@ export default function Landing() {
           
           <div className="grid sm:grid-cols-3 gap-8 text-left">
             <div className="bg-[#1e1e1e] p-8 rounded-3xl border border-white/5 hover:border-[#16a34a]/30 transition-colors">
-              <p className="text-4xl sm:text-5xl font-semibold text-white mb-3 tracking-tighter">20-30%</p>
+              <p className="text-4xl sm:text-5xl font-semibold text-white mb-3 tracking-tighter">37%</p>
               <p className="text-sm font-medium text-white tracking-wide uppercase">Post-harvest loss</p>
-              <p className="text-sm text-stone-400 mt-3 leading-relaxed font-light">Due to transport delays and fragmented coordination across rural sectors.</p>
-            </div>
-            <div className="bg-[#1e1e1e] p-8 rounded-3xl border border-white/5 hover:border-[#16a34a]/30 transition-colors">
-              <p className="text-4xl sm:text-5xl font-semibold text-white mb-3 tracking-tighter">1/3</p>
-              <p className="text-sm font-medium text-white tracking-wide uppercase">Lost in transit</p>
-              <p className="text-sm text-stone-400 mt-3 leading-relaxed font-light">Of fresh agricultural value perishes before reaching main Kigali markets.</p>
+              <p className="text-sm text-stone-400 mt-3 leading-relaxed font-light">Of Sub-Saharan produce lost in transit due to fragmented coordination and delays.</p>
             </div>
             <div className="bg-[#1e1e1e] p-8 rounded-3xl border border-white/5 hover:border-[#16a34a]/30 transition-colors">
               <p className="text-4xl sm:text-5xl font-semibold text-white mb-3 tracking-tighter">Empty</p>
@@ -218,7 +213,7 @@ export default function Landing() {
               Explore the platform.
             </h2>
             <p className="text-stone-400 text-lg max-w-2xl leading-relaxed font-light">
-              Select a portal to enter the demo and experience the network.
+              Select a portal to sign up and start using the platform.
             </p>
           </div>
 
@@ -254,7 +249,7 @@ export default function Landing() {
       {/* Footer */}
       <footer className="py-8 px-6 lg:px-12 bg-[#0a0a0a] border-t border-white/5 text-stone-500 text-sm font-light">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <span className="font-medium text-stone-400">&copy; 2026 GreenRouteRwanda Concept</span>
+          <span className="font-medium text-stone-400">&copy; 2026 GreenRoute Rwanda</span>
           <span className="flex items-center gap-2">
             Built for agricultural logistics
           </span>

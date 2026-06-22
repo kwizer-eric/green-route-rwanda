@@ -15,7 +15,7 @@ export default function AIMatching() {
     setProcessing(true)
     setMatches([])
     await simulateAIProcessing(2000)
-    const results = runAdminAutoMatching()
+    const results = await runAdminAutoMatching()
     setMatches(results)
     setProcessing(false)
   }
