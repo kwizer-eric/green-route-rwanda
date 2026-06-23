@@ -91,8 +91,10 @@ function mapOrder(row, listing, farmerName) {
 function enrichJob(job, { listingById, orderByListing, nameById }) {
   const listing = listingById[job.listingId]
   const order = orderByListing[job.listingId]
+  const quantity = order?.quantity ?? job.quantity
   return {
     ...job,
+    quantity,
     farmerName: listing?.farmerName || nameById[listing?.farmerId] || '',
     farmerDistrict: listing?.district || job.pickupDistrict,
     listingStatus: listing?.status || '',
@@ -334,10 +336,15 @@ export function AppContextProvider({ children }) {
 
     const { data: orderRow } = await supabase
       .from('orders')
-      .select('delivery_district')
+      .select('delivery_district, quantity')
       .eq('listing_id', listingId)
+      .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle()
+
+    const quantityKg = orderRow?.quantity != null
+      ? Number(orderRow.quantity)
+      : Number(listing.quantity)
 
     let pricePerKm
     if (transporterId) {
@@ -352,7 +359,7 @@ export function AppContextProvider({ children }) {
     return calculateTransportPrice({
       pickupDistrict: listing.district,
       deliveryDistrict: orderRow?.delivery_district || 'Kigali',
-      quantityKg: listing.quantity,
+      quantityKg,
       pricePerKm,
     })
   }
@@ -363,19 +370,24 @@ export function AppContextProvider({ children }) {
     const { data } = await supabase.from('listings').select('*').eq('id', listingId).single()
     if (!data) return
 
-    const { price, distanceKm } = await transportQuoteForListing(listingId, {
-      district: data.district,
-      quantity: Number(data.quantity),
-    })
-
     const { data: orderRow } = await supabase
       .from('orders')
-      .select('delivery_district, delivery_date')
+      .select('delivery_district, delivery_date, quantity')
       .eq('listing_id', listingId)
+      .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle()
 
+    const transportQty = orderRow?.quantity != null
+      ? Number(orderRow.quantity)
+      : Number(data.quantity)
+
     const deliveryDistrict = orderRow?.delivery_district || 'Kigali'
+
+    const { price, distanceKm } = await transportQuoteForListing(listingId, {
+      district: data.district,
+      quantity: transportQty,
+    })
 
     const [{ data: tpRows }, { data: profileRows }] = await Promise.all([
       supabase.from('transporter_profiles').select('*'),
@@ -387,7 +399,7 @@ export function AppContextProvider({ children }) {
       {
         pickupDistrict: data.district,
         deliveryDistrict,
-        quantity: Number(data.quantity),
+        quantity: transportQty,
         deliveryDate: orderRow?.delivery_date,
       },
       transporterList,
@@ -397,7 +409,7 @@ export function AppContextProvider({ children }) {
     const payload = {
       listing_id: listingId,
       crop: data.crop,
-      quantity: data.quantity,
+      quantity: transportQty,
       pickup_district: data.district,
       delivery_district: deliveryDistrict,
       price,
@@ -501,9 +513,23 @@ export function AppContextProvider({ children }) {
 
     const { price, distanceKm } = await transportQuoteForListing(job.listingId, null, transporterId)
 
+    const { data: orderRow } = await supabase
+      .from('orders')
+      .select('quantity')
+      .eq('listing_id', job.listingId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    const tripQty = orderRow?.quantity != null ? Number(orderRow.quantity) : job.quantity
+
     const { data: updatedJob, error: jobError } = await supabase
       .from('transport_jobs')
-      .update({ transporter_id: transporterId, price, distance: distanceKm })
+      .update({
+        transporter_id: transporterId,
+        price,
+        distance: distanceKm,
+        quantity: tripQty,
+      })
       .eq('id', jobId)
       .is('transporter_id', null)
       .select()
@@ -522,7 +548,7 @@ export function AppContextProvider({ children }) {
       listing_id: job.listingId,
       job_id: jobId,
       crop: job.crop,
-      quantity: job.quantity,
+      quantity: tripQty,
       from_district: job.pickupDistrict,
       to_district: job.deliveryDistrict,
       status: 'Active',
