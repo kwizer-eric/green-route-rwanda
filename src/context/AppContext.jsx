@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react'
-import { explainMatch } from '../utils/aiMatching'
+import { rankTransportersForJob, runAdminMatching } from '../utils/aiMatching'
 import { calculateTransportPrice, resolveProducePricePerKg } from '../utils/pricing'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './AuthContext'
@@ -39,6 +39,34 @@ function mapTransporter(row, name) {
   }
 }
 
+function enrichOrder(order, { nameById, jobByListing, tripByListing }) {
+  const job = jobByListing[order.produceId]
+  const trip = tripByListing[order.produceId]
+  let transportStatus = 'Awaiting transport'
+  if (order.status === 'Completed' && order.buyerConfirmedAt) {
+    transportStatus = 'Completed'
+  } else if (order.status === 'Delivered') {
+    transportStatus = 'Awaiting buyer confirmation'
+  } else if (trip) {
+    transportStatus = trip.status === 'Completed' ? 'Delivered' : trip.status
+  } else if (job?.transporterId) {
+    transportStatus = 'Matched'
+  } else if (job) {
+    transportStatus = 'Awaiting transporter'
+  }
+
+  return {
+    ...order,
+    buyerName: nameById[order.buyerId] || '',
+    transportStatus,
+    transporterName: job?.transporterId ? nameById[job.transporterId] || '' : null,
+    transportPrice: job?.price ?? null,
+    transportRoute: job
+      ? `${job.pickupDistrict} → ${job.deliveryDistrict}`
+      : null,
+  }
+}
+
 function mapOrder(row, listing, farmerName) {
   return {
     id: row.id,
@@ -55,7 +83,23 @@ function mapOrder(row, listing, farmerName) {
     deliveryDistrict: row.delivery_district,
     deliveryDate: row.delivery_date,
     payment: row.payment,
+    buyerConfirmedAt: row.buyer_confirmed_at,
     createdAt: row.created_at,
+  }
+}
+
+function enrichJob(job, { listingById, orderByListing, nameById }) {
+  const listing = listingById[job.listingId]
+  const order = orderByListing[job.listingId]
+  return {
+    ...job,
+    farmerName: listing?.farmerName || nameById[listing?.farmerId] || '',
+    farmerDistrict: listing?.district || job.pickupDistrict,
+    listingStatus: listing?.status || '',
+    deliveryAddress: order?.deliveryAddress || '',
+    deliveryDate: order?.deliveryDate || '',
+    buyerName: order?.buyerName || '',
+    paymentMethod: order?.payment || '',
   }
 }
 
@@ -71,6 +115,9 @@ function mapJob(row) {
     distance: row.distance ? Number(row.distance) : null,
     transporterId: row.transporter_id,
     aiOptimized: row.ai_optimized,
+    recommendedTransporterId: row.recommended_transporter_id,
+    matchScore: row.match_score != null ? Number(row.match_score) : null,
+    matchFactors: row.match_factors || [],
     createdAt: row.created_at,
   }
 }
@@ -101,6 +148,8 @@ export function AppContextProvider({ children }) {
   const [jobs, setJobs] = useState([])
   const [unmatchedRequests, setUnmatchedRequests] = useState([])
   const [availableTransporters, setAvailableTransporters] = useState([])
+  const [farmers, setFarmers] = useState([])
+  const [buyers, setBuyers] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -113,6 +162,8 @@ export function AppContextProvider({ children }) {
       setJobs([])
       setUnmatchedRequests([])
       setAvailableTransporters([])
+      setFarmers([])
+      setBuyers([])
       setLoading(false)
       return
     }
@@ -130,7 +181,7 @@ export function AppContextProvider({ children }) {
         tripsRes,
       ] = await Promise.all([
         supabase.from('listings').select('*').order('created_at', { ascending: false }),
-        supabase.from('profiles').select('id, full_name'),
+        supabase.from('profiles').select('id, full_name, portal_role'),
         supabase.from('transporter_profiles').select('*'),
         supabase.from('orders').select('*').order('created_at', { ascending: false }),
         supabase.from('transport_jobs').select('*').order('created_at', { ascending: false }),
@@ -154,44 +205,69 @@ export function AppContextProvider({ children }) {
       )
       const mappedJobs = (jobsRes.data || []).map(mapJob)
       const mappedTrips = (tripsRes.data || []).map(mapTrip)
+      const jobByListing = Object.fromEntries(mappedJobs.map(j => [j.listingId, j]))
+      const tripByListing = Object.fromEntries(mappedTrips.map(t => [t.listingId, t]))
       const mappedOrders = (ordersRes.data || []).map(o => {
         const listing = listingById[o.listing_id]
-        return mapOrder(o, listing, listing ? nameById[listing.farmer_id] : '')
+        const base = mapOrder(o, listing, listing ? nameById[listing.farmer_id] : '')
+        return enrichOrder(base, { nameById, jobByListing, tripByListing })
       })
 
+      const listingByIdMap = Object.fromEntries(mappedListings.map(l => [l.id, l]))
+      const orderByListing = Object.fromEntries(mappedOrders.map(o => [o.produceId, o]))
+      const enrichedJobs = mappedJobs.map(j =>
+        enrichJob(j, { listingById: listingByIdMap, orderByListing, nameById }),
+      )
+
+      const participantProfiles = (profilesRes.data || []).map(p => ({
+        id: p.id,
+        fullName: p.full_name || '',
+        role: p.portal_role,
+      }))
+      const orderListingIds = new Set(mappedOrders.map(o => o.produceId))
       const matchedListingIds = new Set(
         mappedJobs.filter(j => j.transporterId).map(j => j.listingId)
       )
       const unmatched = mappedListings
         .filter(
           l =>
+            orderListingIds.has(l.id) &&
             !matchedListingIds.has(l.id) &&
-            !['Delivered', 'Completed', 'Matched', 'In Transit'].includes(l.status)
+            !['Delivered', 'Completed'].includes(l.status)
         )
-        .map(l => ({
-          id: l.id,
-          listingId: l.id,
-          farmer: l.farmerName,
-          crop: l.crop,
-          quantity: l.quantity,
-          district: l.district,
-        }))
+        .map(l => {
+          const order = mappedOrders.find(o => o.produceId === l.id)
+          return {
+            id: l.id,
+            listingId: l.id,
+            farmer: l.farmerName,
+            crop: l.crop,
+            quantity: l.quantity,
+            district: l.district,
+            deliveryDistrict: order?.deliveryDistrict || 'Kigali',
+            deliveryDate: order?.deliveryDate,
+          }
+        })
 
       const avail = mappedTransporters.map(t => ({
         id: t.id,
         name: t.name,
         vehicle: t.vehicleType,
         capacity: t.capacity,
-        district: t.routes[0] || 'Kigali',
+        district: t.routes.join(', ') || 'Kigali',
+        routes: t.routes,
+        pricePerKm: t.pricePerKm,
       }))
 
       setListings(mappedListings)
       setTransporters(mappedTransporters)
       setOrders(mappedOrders)
       setTrips(mappedTrips)
-      setJobs(mappedJobs)
+      setJobs(enrichedJobs)
       setUnmatchedRequests(unmatched)
       setAvailableTransporters(avail)
+      setFarmers(participantProfiles.filter(p => p.role === 'farmer'))
+      setBuyers(participantProfiles.filter(p => p.role === 'buyer'))
     } catch (err) {
       console.error('[AppContext] loadMarketplace:', err)
       setError(err.message || 'Failed to load marketplace data')
@@ -223,8 +299,7 @@ export function AppContextProvider({ children }) {
     }).select().single()
     if (insertError) throw insertError
 
-    const matched = await tryAutoMatchListing(newListing.id, newListing)
-    if (!matched) await loadMarketplace()
+    await loadMarketplace()
   }
 
   const listingHasTransport = async (listingId) => {
@@ -295,14 +370,31 @@ export function AppContextProvider({ children }) {
 
     const { data: orderRow } = await supabase
       .from('orders')
-      .select('delivery_district')
+      .select('delivery_district, delivery_date')
       .eq('listing_id', listingId)
       .limit(1)
       .maybeSingle()
 
     const deliveryDistrict = orderRow?.delivery_district || 'Kigali'
 
-    await supabase.from('transport_jobs').insert({
+    const [{ data: tpRows }, { data: profileRows }] = await Promise.all([
+      supabase.from('transporter_profiles').select('*'),
+      supabase.from('profiles').select('id, full_name'),
+    ])
+    const nameById = Object.fromEntries((profileRows || []).map(p => [p.id, p.full_name]))
+    const transporterList = (tpRows || []).map(t => mapTransporter(t, nameById[t.id]))
+    const ranked = rankTransportersForJob(
+      {
+        pickupDistrict: data.district,
+        deliveryDistrict,
+        quantity: Number(data.quantity),
+        deliveryDate: orderRow?.delivery_date,
+      },
+      transporterList,
+      1,
+    )
+
+    const payload = {
       listing_id: listingId,
       crop: data.crop,
       quantity: data.quantity,
@@ -312,37 +404,15 @@ export function AppContextProvider({ children }) {
       distance: distanceKm,
       transporter_id: null,
       ai_optimized: true,
-    })
-  }
-
-  const tryAutoMatchListing = async (listingId, listingOverride = null, transporterId = null) => {
-    if (await listingHasTransport(listingId)) return false
-
-    let pickId = transporterId
-    if (!pickId) {
-      const { data: transporterRows } = await supabase.from('transporter_profiles').select('id')
-      if (!transporterRows?.length) {
-        await createOpenTransportJob(listingId)
-        return false
-      }
-      pickId = transporterRows[Math.floor(Math.random() * transporterRows.length)].id
     }
 
-    const { data: openJob } = await supabase
-      .from('transport_jobs')
-      .select('id, price')
-      .eq('listing_id', listingId)
-      .is('transporter_id', null)
-      .maybeSingle()
-
-    if (openJob) {
-      await acceptJob(openJob.id, pickId)
-      return true
+    if (ranked[0]) {
+      payload.recommended_transporter_id = ranked[0].id
+      payload.match_score = ranked[0].confidence
+      payload.match_factors = ranked[0].factors
     }
 
-    const { price } = await transportQuoteForListing(listingId, listingOverride, pickId)
-    await acceptMatch(listingId, pickId, price, listingOverride)
-    return true
+    await supabase.from('transport_jobs').insert(payload)
   }
 
   const registerVehicle = async (type, capacity, plate, routes, availability, pricePerKm) => {
@@ -374,20 +444,17 @@ export function AppContextProvider({ children }) {
     })
     if (upsertError) throw upsertError
 
-    const { data: unassignedListings } = await supabase
-      .from('listings')
-      .select('id')
-      .in('status', ['Pending', 'Processing'])
+    const { data: orderRows } = await supabase.from('orders').select('listing_id')
+    const listingIdsWithOrders = [...new Set((orderRows || []).map(o => o.listing_id))]
 
-    for (const row of unassignedListings || []) {
-      if (!(await listingHasTransport(row.id))) {
-        await tryAutoMatchListing(row.id, null, user.id)
+    for (const listingId of listingIdsWithOrders) {
+      if (await listingHasTransport(listingId)) continue
+      if (!(await listingHasOpenJob(listingId))) {
+        await createOpenTransportJob(listingId)
       }
     }
 
-    if (!unassignedListings?.length) {
-      await loadMarketplace()
-    }
+    await loadMarketplace()
   }
 
   const placeOrder = async (produceId, quantity, address, deliveryDistrict, date, payment) => {
@@ -420,86 +487,7 @@ export function AppContextProvider({ children }) {
       .eq('id', produceId)
     if (listingError) throw listingError
 
-    const matched = await tryAutoMatchListing(produceId)
-    if (!matched) await loadMarketplace()
-  }
-
-  const acceptMatch = async (listingId, transporterId, price, listingOverride = null) => {
-    let listing = listingOverride || listings.find(l => l.id === listingId)
-    if (!listing) {
-      const { data } = await supabase.from('listings').select('*').eq('id', listingId).single()
-      if (!data) throw new Error('Listing not found')
-      listing = {
-        id: data.id,
-        crop: data.crop,
-        quantity: Number(data.quantity),
-        district: data.district,
-      }
-    }
-
-    const { data: orderRow } = await supabase
-      .from('orders')
-      .select('delivery_district')
-      .eq('listing_id', listingId)
-      .limit(1)
-      .maybeSingle()
-    const deliveryDistrict = orderRow?.delivery_district || 'Kigali'
-
-    let transporterPerKm
-    if (transporterId) {
-      const { data: tp } = await supabase
-        .from('transporter_profiles')
-        .select('price_per_km')
-        .eq('id', transporterId)
-        .maybeSingle()
-      if (tp?.price_per_km != null) transporterPerKm = Number(tp.price_per_km)
-    }
-
-    const quote = calculateTransportPrice({
-      pickupDistrict: listing.district,
-      deliveryDistrict,
-      quantityKg: listing.quantity,
-      pricePerKm: transporterPerKm,
-    })
-    const finalPrice = price ?? quote.price
-
-    const { error: listingError } = await supabase
-      .from('listings')
-      .update({ status: 'Matched' })
-      .eq('id', listingId)
-    if (listingError) throw listingError
-
-    const { data: job, error: jobError } = await supabase
-      .from('transport_jobs')
-      .insert({
-        listing_id: listingId,
-        crop: listing.crop,
-        quantity: listing.quantity,
-        pickup_district: listing.district,
-        delivery_district: deliveryDistrict,
-        price: finalPrice,
-        distance: quote.distanceKm,
-        transporter_id: transporterId,
-        ai_optimized: true,
-      })
-      .select()
-      .single()
-    if (jobError) throw jobError
-
-    const { error: tripError } = await supabase.from('trips').insert({
-      transporter_id: transporterId,
-      listing_id: listingId,
-      job_id: job.id,
-      crop: listing.crop,
-      quantity: listing.quantity,
-      from_district: listing.district,
-      to_district: deliveryDistrict,
-      status: 'Active',
-      earnings: finalPrice,
-      trip_date: new Date().toISOString().split('T')[0],
-    })
-    if (tripError) throw tripError
-
+    await createOpenTransportJob(produceId)
     await loadMarketplace()
   }
 
@@ -513,11 +501,15 @@ export function AppContextProvider({ children }) {
 
     const { price, distanceKm } = await transportQuoteForListing(job.listingId, null, transporterId)
 
-    const { error: jobError } = await supabase
+    const { data: updatedJob, error: jobError } = await supabase
       .from('transport_jobs')
       .update({ transporter_id: transporterId, price, distance: distanceKm })
       .eq('id', jobId)
+      .is('transporter_id', null)
+      .select()
+      .maybeSingle()
     if (jobError) throw jobError
+    if (!updatedJob) throw new Error('Job already taken by another transporter')
 
     const { error: listingError } = await supabase
       .from('listings')
@@ -573,25 +565,36 @@ export function AppContextProvider({ children }) {
     await loadMarketplace()
   }
 
+  const confirmDelivery = async (orderId) => {
+    if (!user) throw new Error('Not signed in')
+
+    const { data, error } = await supabase
+      .from('orders')
+      .update({
+        status: 'Completed',
+        buyer_confirmed_at: new Date().toISOString(),
+      })
+      .eq('id', orderId)
+      .eq('buyer_id', user.id)
+      .eq('status', 'Delivered')
+      .select('listing_id')
+      .maybeSingle()
+
+    if (error) throw error
+    if (!data) throw new Error('Order is not ready for confirmation')
+
+    const { error: listingError } = await supabase
+      .from('listings')
+      .update({ status: 'Completed' })
+      .eq('id', data.listing_id)
+    if (listingError) throw listingError
+
+    await loadMarketplace()
+  }
+
   const runAdminAutoMatching = async () => {
-    if (unmatchedRequests.length === 0 || availableTransporters.length === 0) return []
-
-    const pairs = []
-    const unmatchedCopy = [...unmatchedRequests]
-    const availableCopy = [...availableTransporters]
-
-    for (const req of unmatchedCopy) {
-      const trans = availableCopy[Math.floor(Math.random() * availableCopy.length)]
-      const fullTransporter = transporters.find(t => t.id === trans.id) || trans
-      const { factors, confidence, price } = explainMatch(req, fullTransporter)
-
-      pairs.push({ request: req, transporter: trans, confidence, factors, price })
-
-      const lId = req.listingId || req.id
-      await acceptMatch(lId, trans.id, price)
-    }
-
-    return pairs
+    if (unmatchedRequests.length === 0 || transporters.length === 0) return []
+    return runAdminMatching(unmatchedRequests, transporters)
   }
 
   return (
@@ -604,15 +607,17 @@ export function AppContextProvider({ children }) {
         jobs,
         unmatchedRequests,
         availableTransporters,
+        farmers,
+        buyers,
         loading,
         error,
         refresh: loadMarketplace,
         addListing,
         registerVehicle,
         placeOrder,
-        acceptMatch,
         acceptJob,
         updateTripStatus,
+        confirmDelivery,
         runAdminAutoMatching,
       }}
     >

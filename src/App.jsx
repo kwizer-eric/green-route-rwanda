@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import {
   LayoutDashboard, Package, List, Truck, Briefcase, Route as RouteIcon, DollarSign,
-  ShoppingCart, Search, ClipboardList, Map, Brain, BarChart3, Heart,
+  ShoppingCart, Search, ClipboardList, Map, Brain, BarChart3, Heart, ListOrdered, Users,
 } from 'lucide-react'
 import PortalLayout from './components/PortalLayout'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -32,6 +32,8 @@ import LiveMap from './pages/admin/LiveMap'
 import AIMatching from './pages/admin/AIMatching'
 import Analytics from './pages/admin/Analytics'
 import ImpactMetrics from './pages/admin/ImpactMetrics'
+import PlatformOrders from './pages/admin/PlatformOrders'
+import PlatformDirectory from './pages/admin/PlatformDirectory'
 
 const farmerLinks = [
   { to: '/farmer', label: 'Dashboard', icon: LayoutDashboard, end: true },
@@ -57,6 +59,8 @@ const buyerLinks = [
 
 const adminLinks = [
   { to: '/admin', label: 'Overview', icon: LayoutDashboard, end: true },
+  { to: '/admin/directory', label: 'Platform Directory', icon: Users },
+  { to: '/admin/orders', label: 'Platform Orders', icon: ListOrdered },
   { to: '/admin/map', label: 'Live Map', icon: Map },
   { to: '/admin/matching', label: 'AI Matching', icon: Brain },
   { to: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
@@ -125,6 +129,8 @@ export default function App() {
               }
             >
               <Route index element={<AdminDashboard />} />
+              <Route path="directory" element={<PlatformDirectory />} />
+              <Route path="orders" element={<PlatformOrders />} />
               <Route path="map" element={<LiveMap />} />
               <Route path="matching" element={<AIMatching />} />
               <Route path="analytics" element={<Analytics />} />

@@ -6,6 +6,9 @@ const styles = {
   'In Transit': 'bg-orange-50 text-orange-700 ring-orange-600/20',
   Delivered: 'bg-emerald-50 text-emerald-700 ring-emerald-600/20',
   Completed: 'bg-emerald-50 text-emerald-700 ring-emerald-600/20',
+  'Awaiting transport': 'bg-amber-50 text-amber-700 ring-amber-600/20',
+  'Awaiting transporter': 'bg-amber-50 text-amber-700 ring-amber-600/20',
+  'Awaiting buyer confirmation': 'bg-orange-50 text-orange-700 ring-orange-600/20',
 }
 
 export default function StatusBadge({ status }) {

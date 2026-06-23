@@ -25,7 +25,7 @@ export default function AIMatching() {
       {processing && <AIProcessingOverlay message="AI Matching Engine running..." />}
       <PageHeader
         title="AI Matching Engine"
-        description="Coordinates produce requests with transport capacity — every match shows why, not just a score."
+        description="Route-based recommendations only — transporters accept jobs from Available Jobs."
       />
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] gap-4 sm:gap-6 items-start">
         <Card className="p-5">
@@ -44,7 +44,7 @@ export default function AIMatching() {
 
         <div className="flex flex-col items-center gap-4 py-4 lg:py-8 order-first lg:order-none lg:col-auto">
           <Button onClick={handleMatch} disabled={processing || unmatchedRequests.length === 0} className="whitespace-nowrap">
-            <Brain size={16} /> Run AI Matching
+            <Brain size={16} /> Run AI Recommendations
           </Button>
           {matches.length > 0 && (
             <div className="space-y-2 w-full max-w-[200px]">
@@ -59,12 +59,12 @@ export default function AIMatching() {
         </div>
 
         <Card className="p-5">
-          <h3 className="text-sm font-semibold text-stone-900 mb-4">Available Transporters</h3>
+          <h3 className="text-sm font-semibold text-stone-900 mb-4">Available Transporters (by route)</h3>
           <div className="space-y-3">
             {availableTransporters.map(t => (
               <div key={t.id} className="p-3 rounded-xl bg-stone-50 border border-stone-100">
                 <p className="font-medium text-stone-900 text-sm">{t.name}</p>
-                <p className="text-xs text-stone-500 mt-0.5">{t.vehicle} · {t.capacity} kg · {t.district}</p>
+                <p className="text-xs text-stone-500 mt-0.5">{t.vehicle} · {t.capacity} kg · {t.district || t.routes?.join(', ')}</p>
               </div>
             ))}
           </div>
@@ -73,7 +73,7 @@ export default function AIMatching() {
 
       {matches.length > 0 && (
         <Card className="mt-6 p-6 animate-fade-in space-y-4">
-          <h3 className="text-sm font-semibold text-stone-900">Match Results — with explanations</h3>
+          <h3 className="text-sm font-semibold text-stone-900">AI Recommendations — waiting for transporter acceptance</h3>
           {matches.map((m, i) => (
             <div key={i} className="p-4 rounded-xl border border-primary/20 bg-primary-light/20 space-y-3">
               <div className="flex items-center gap-4 flex-wrap">

@@ -7,6 +7,7 @@ const steps = [
   { key: 'matched', label: 'Matched' },
   { key: 'transit', label: 'In Transit' },
   { key: 'delivered', label: 'Delivered' },
+  { key: 'confirmed', label: 'Confirmed' },
 ]
 
 const roleHints = {
@@ -23,7 +24,7 @@ const STATUS_INDEX = {
   Active: 3,
   'In Transit': 3,
   Delivered: 4,
-  Completed: 4,
+  Completed: 5,
 }
 
 function maxIndex(values) {
@@ -46,7 +47,7 @@ export default function JourneyStatusBar({ role = 'farmer' }) {
     activeIndex = mine.length ? maxIndex(mine.map(t => t.status)) : 0
   } else if (role === 'admin') {
     const delivered = listings.filter(l => ['Delivered', 'Completed'].includes(l.status)).length
-    activeIndex = delivered > 0 ? 4 : listings.length > 0 ? 2 : 0
+    activeIndex = delivered > 0 ? 5 : listings.length > 0 ? 2 : 0
   }
 
   return (
